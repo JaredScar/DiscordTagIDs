@@ -43,3 +43,16 @@ How does the tags look on players? Let's have a look :)
 [DiscordAcePerms](https://forum.fivem.net/t/discordaceperms-release/573044)
 
 [SandyVehiclesRestrict](https://github.com/TheWolfBadger/SandyVehiclesRestrict)
+
+
+### How to set up it up
+The 1s in this part of the server.lua file must be replaced with the IDs of your discord roles that are equal to the prefix you have associated with it:
+```lua
+roleList = {
+{0, "~w~"}, -- Regular Civilian / Non-Staff
+{1, "~r~STAFF ~w~"}, --[[ T-Mod ]]-- 
+{1, "~r~STAFF ~w~"}, --[[ Moderator ]]--
+{1, "~r~STAFF ~w~"}, --[[ Admin ]]--
+{1, "~p~MANAGEMENT ~w~"}, --[[ Management ]]--
+{1, "~o~OWNER ~w~"}, --[[ Owner ]]--
+}
