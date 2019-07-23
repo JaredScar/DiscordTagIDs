@@ -35,8 +35,14 @@ end
 
 prefixes = {}
 hidePrefix = {}
+hideTags = {}
 hideAll = false
 prefixStr = ""
+
+RegisterNetEvent("ID:HideTag")
+AddEventHandler("ID:HideTag", function(arr, error)
+	hideTags = arr
+end)
 
 RegisterNetEvent("ID:Tags-Toggle")
 AddEventHandler("ID:Tags-Toggle", function(val, error)
@@ -73,7 +79,7 @@ Citizen.CreateThread(function()
             N_0x31698aa80e0223f8(i)
         end
 		if not (hideAll) then
-			for _, id in ipairs(GetActivePlayers()) do
+			for id = 0, 31 do
 				if  ((NetworkIsPlayerActive( id )) and GetPlayerPed( id ) ~= GetPlayerPed( -1 )) then
 					ped = GetPlayerPed( id )
 					blip = GetBlipFromEntity( ped ) 
@@ -92,14 +98,7 @@ Citizen.CreateThread(function()
 									prefixStr = prefixes[i][2]
 								end
 							end
-							if not (has_value(hidePrefix, playName)) then
-								-- Show their ID tag with prefix then
-								DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~b~[" .. GetPlayerServerId(id) .. "]")
-							else
-								-- Don't show their ID tag with prefix then
-								DrawText3D(x2, y2, z2 + displayIDHeight, "~b~[" .. GetPlayerServerId(id) .. "]")
-							end
-							prefixStr = ""
+							DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~b~[" .. GetPlayerServerId(id) .. "]")
 						else
 							red = 255
 							green = 255
@@ -109,14 +108,7 @@ Citizen.CreateThread(function()
 									prefixStr = prefixes[i][2]
 								end
 							end
-							if not (has_value(hidePrefix, playName)) then
-								-- Show their ID tag with prefix then
-								DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~w~[" .. GetPlayerServerId(id) .. "]")
-							else
-								-- Don't show their ID tag with prefix then
-								DrawText3D(x2, y2, z2 + displayIDHeight, "~w~[" .. GetPlayerServerId(id) .. "]")
-							end
-							prefixStr = ""
+							DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~w~[" .. GetPlayerServerId(id) .. "]")
 						end
 					end
 					local playName = GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id)))
@@ -131,12 +123,14 @@ Citizen.CreateThread(function()
 										prefixStr = prefixes[i][2]
 									end
 								end
-								if not (has_value(hidePrefix, playName)) then
-									-- Show their ID tag with prefix then
-									DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~b~[" .. GetPlayerServerId(id) .. "]")
-								else
-									-- Don't show their ID tag with prefix then
-									DrawText3D(x2, y2, z2 + displayIDHeight, "~b~[" .. GetPlayerServerId(id) .. "]")
+								if not has_value(hideTags, playName) then
+									if not (has_value(hidePrefix, playName)) then
+										-- Show their ID tag with prefix then
+										DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~b~[" .. GetPlayerServerId(id) .. "]")
+									else
+										-- Don't show their ID tag with prefix then
+										DrawText3D(x2, y2, z2 + displayIDHeight, "~b~[" .. GetPlayerServerId(id) .. "]")
+									end
 								end
 								prefixStr = ""
 							else
@@ -148,12 +142,14 @@ Citizen.CreateThread(function()
 										prefixStr = prefixes[i][2]
 									end
 								end
-								if not (has_value(hidePrefix, playName)) then
-									-- Show their ID tag with prefix then
-									DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~w~[" .. GetPlayerServerId(id) .. "]")
-								else
-									-- Don't show their ID tag with prefix then
-									DrawText3D(x2, y2, z2 + displayIDHeight, "~w~[" .. GetPlayerServerId(id) .. "]")
+								if not has_value(hideTags, playName) then
+									if not (has_value(hidePrefix, playName)) then
+										-- Show their ID tag with prefix then
+										DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~w~[" .. GetPlayerServerId(id) .. "]")
+									else
+										-- Don't show their ID tag with prefix then
+										DrawText3D(x2, y2, z2 + displayIDHeight, "~w~[" .. GetPlayerServerId(id) .. "]")
+									end
 								end
 								prefixStr = ""
 							end

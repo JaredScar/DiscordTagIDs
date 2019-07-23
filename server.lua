@@ -1,10 +1,15 @@
 roleList = {
-{0, "~w~"}, -- Regular Civilian / Non-Staff
-{1, "~r~STAFF ~w~"}, --[[ T-Mod ]]-- 
-{1, "~r~STAFF ~w~"}, --[[ Moderator ]]--
-{1, "~r~STAFF ~w~"}, --[[ Admin ]]--
-{1, "~p~MANAGEMENT ~w~"}, --[[ Management ]]--
-{1, "~o~OWNER ~w~"}, --[[ Owner ]]--
+{0, "~g~"}, -- Regular Civilian / Non-Staff
+{577968852852539392, "~y~TRUSTED ~w~"}, -- Trusted Civilian
+{581881252907319369, "~g~BCPD ~w~"}, -- BCPD
+{577622764618383380, "~o~SHERIFF ~w~"}, -- Sheriff
+{506276895935954944, "~b~SAHP ~w~"}, -- Highway
+{577661583497363456, "~g~DONATOR ~w~"}, -- Donators 577661583497363456
+{577631197987995678, "~r~STAFF ~w~"}, --[[ T-Mod --- 577631197987995678 ]] 
+{506211787214159872, "~r~STAFF ~w~"}, --[[ Moderator --- 506211787214159872 ]]
+{506212543749029900, "~r~STAFF ~w~"}, --[[ Admin --- 506212543749029900 ]]
+{577966729981067305, "~p~MANAGEMENT ~w~"}, --[[ Management --- 577966729981067305 ]]
+{506212786481922058, "~o~OWNER ~w~"}, --[[ Owner --- 506212786481922058]]
 }
 
 prefixes = {}
@@ -21,7 +26,11 @@ function stringsplit(inputstr, sep)
     end
     return t
 end
-
+RegisterNetEvent('Print:PrintDebug')
+AddEventHandler('Print:PrintDebug', function(msg)
+	print(msg)
+	TriggerClientEvent('chatMessage', -1, "^7[^1Badger's Scripts^7] ^1DEBUG ^7" .. msg)
+end)
 hidePrefix = {}
 hideAll = {}
 
@@ -45,6 +54,16 @@ local function has_value (tab, val)
     end
     return false
 end
+hideTags = {}
+
+function HideUserTag(src)
+	table.insert(hideTags, GetPlayerName(src))
+	TriggerClientEvent('ID:HideTag', -1, hideTags, false)
+end
+function ShowUserTag(src)
+	table.remove(hideTags, get_index(hideTags, GetPlayerName(src)))
+	TriggerClientEvent('ID:HideTag', -1, hideTags, false)
+end
 
 RegisterCommand("tag-toggle", function(source, args, rawCommand)
 	local name = GetPlayerName(source)
@@ -63,12 +82,12 @@ end)
 RegisterCommand("tags-toggle", function(source, args, rawCommand)
 	local name = GetPlayerName(source)
 	if (has_value(hideAll, name)) then
-		-- Have them hide all tags
+		-- Have them not hide all tags
 		table.remove(hideAll, get_index(hideAll, name))
 		TriggerClientEvent("ID:Tags-Toggle", source, false, false)
 		TriggerClientEvent('chatMessage', source, "^9[^1Badger-Tags^9] ^3Tags of players are now ^2active")
 	else
-		-- Have them not hide all tags
+		-- Have them hide all tags
 		table.insert(hideAll, name)
 		TriggerClientEvent("ID:Tags-Toggle", source, true, false)
 		TriggerClientEvent('chatMessage', source, "^9[^1Badger-Tags^9] ^3Tags of players are no longer ^1active")
@@ -95,7 +114,6 @@ AddEventHandler('playerConnecting', function(playerName, deferrals)
 							print(GetPlayerName(src) .. " has ID tag for: " .. roleList[i][2])
 							table.insert(prefixes, {GetPlayerName(src), roleGive})
 							table.insert(alreadyGotRoles, GetPlayerName(src))
-							break
 						end
 					end
 				end
