@@ -73,7 +73,7 @@ Citizen.CreateThread(function()
             N_0x31698aa80e0223f8(i)
         end
 		if not (hideAll) then
-			for id = 0, 31 do
+			for _, id in ipairs(GetActivePlayers()) do
 				if  ((NetworkIsPlayerActive( id )) and GetPlayerPed( id ) ~= GetPlayerPed( -1 )) then
 					ped = GetPlayerPed( id )
 					blip = GetBlipFromEntity( ped ) 
