@@ -63,6 +63,10 @@ AddEventHandler("GetStaffID:StaffStr:Return", function(arr, error)
 	prefixes = arr
 end)
 
+AddEventHandler('playerSpawned', function()
+	TriggerServerEvent('dtid:playerSpawned')
+end)
+
 local function has_value (tab, val)
     for index, value in ipairs(tab) do
         if value == val then

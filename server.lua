@@ -94,7 +94,9 @@ RegisterCommand("tags-toggle", function(source, args, rawCommand)
 	end
 end)
 alreadyGotRoles = {}
-AddEventHandler('playerConnecting', function(playerName, deferrals)
+
+RegisterNetEvent('dtid:playerSpawned')
+AddEventHandler('dtid:playerSpawned', function()
 --AddEventHandler('chatMessage', function(source, name, msg)
 	local src = source
 	for k, v in ipairs(GetPlayerIdentifiers(src)) do
@@ -129,4 +131,5 @@ AddEventHandler('playerConnecting', function(playerName, deferrals)
 		table.insert(alreadyGotRoles, GetPlayerName(src))
 	end
 	TriggerClientEvent("GetStaffID:StaffStr:Return", -1, prefixes, false)
+	TriggerClientEvent("ID:Tag-Toggle", -1, hidePrefix, false)
 end)
