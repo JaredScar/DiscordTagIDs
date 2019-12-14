@@ -59,13 +59,14 @@ AddEventHandler("ID:Tag-Toggle", function(arr, error)
 end)
 
 RegisterNetEvent("GetStaffID:StaffStr:Return")
-AddEventHandler("GetStaffID:StaffStr:Return", function(arr, error)
+AddEventHandler("GetStaffID:StaffStr:Return", function(arr, activeTagTrack, error)
 	prefixes = arr
+	activeTagTracker = activeTagTrack
+	for k, v in pairs(activeTagTracker) do 
+		print("The key is " .. k .. " and value is: " .. v)
+	end
 end)
-
-AddEventHandler('playerSpawned', function()
-	TriggerServerEvent('dtid:playerSpawned')
-end)
+activeTagTracker = {}
 
 local function has_value (tab, val)
     for index, value in ipairs(tab) do
@@ -77,6 +78,12 @@ local function has_value (tab, val)
     return false
 end
 
+AddEventHandler('playerSpawned', function() 
+	-- The player has spawned, we gotta get their tag 
+	TriggerServerEvent('DiscordTag:Server:GetTag'); 
+end)
+
+
 Citizen.CreateThread(function()
     while true do
         for i=0,99 do
@@ -84,6 +91,11 @@ Citizen.CreateThread(function()
         end
 		if not (hideAll) then
 			for _, id in ipairs(GetActivePlayers()) do
+				print("The server ID of player " .. GetPlayerName(id) .. " is: " .. GetPlayerServerId(id))
+				local activeTag = activeTagTracker[GetPlayerServerId(id)]
+				if activeTag == nil then 
+					activeTag = ''
+				end
 				if  ((NetworkIsPlayerActive( id )) and GetPlayerPed( id ) ~= GetPlayerPed( -1 )) then
 					ped = GetPlayerPed( id )
 					blip = GetBlipFromEntity( ped ) 
@@ -97,22 +109,12 @@ Citizen.CreateThread(function()
 							red = 0
 							green = 0
 							blue = 255
-							for i = 1, #prefixes do
-								if prefixes[i][1] == GetPlayerName(id) then
-									prefixStr = prefixes[i][2]
-								end
-							end
-							DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~b~[" .. GetPlayerServerId(id) .. "]")
+							DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~[" .. GetPlayerServerId(id) .. "]")
 						else
 							red = 255
 							green = 255
 							blue = 255
-							for i = 1, #prefixes do
-								if prefixes[i][1] == GetPlayerName(id) then
-									prefixStr = prefixes[i][2]
-								end
-							end
-							DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~w~[" .. GetPlayerServerId(id) .. "]")
+							DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~[" .. GetPlayerServerId(id) .. "]")
 						end
 					end
 					local playName = GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id)))
@@ -122,15 +124,11 @@ Citizen.CreateThread(function()
 								red = 0
 								green = 0
 								blue = 255
-								for i = 1, #prefixes do
-									if prefixes[i][1] == GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id))) then
-										prefixStr = prefixes[i][2]
-									end
-								end
+								
 								if not has_value(hideTags, playName) then
 									if not (has_value(hidePrefix, playName)) then
 										-- Show their ID tag with prefix then
-										DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~b~[" .. GetPlayerServerId(id) .. "]")
+										DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~[" .. GetPlayerServerId(id) .. "]")
 									else
 										-- Don't show their ID tag with prefix then
 										DrawText3D(x2, y2, z2 + displayIDHeight, "~b~[" .. GetPlayerServerId(id) .. "]")
@@ -141,21 +139,15 @@ Citizen.CreateThread(function()
 								red = 255
 								green = 255
 								blue = 255
-								for i = 1, #prefixes do
-									if prefixes[i][1] == GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id))) then
-										prefixStr = prefixes[i][2]
-									end
-								end
 								if not has_value(hideTags, playName) then
 									if not (has_value(hidePrefix, playName)) then
 										-- Show their ID tag with prefix then
-										DrawText3D(x2, y2, z2 + displayIDHeight, prefixStr .. "~w~[" .. GetPlayerServerId(id) .. "]")
+										DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~[" .. GetPlayerServerId(id) .. "]")
 									else
 										-- Don't show their ID tag with prefix then
 										DrawText3D(x2, y2, z2 + displayIDHeight, "~w~[" .. GetPlayerServerId(id) .. "]")
 									end
 								end
-								prefixStr = ""
 							end
 						end
 					end  

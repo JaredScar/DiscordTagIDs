@@ -93,10 +93,49 @@ RegisterCommand("tags-toggle", function(source, args, rawCommand)
 		TriggerClientEvent('chatMessage', source, "^9[^1Badger-Tags^9] ^3Tags of players are no longer ^1active")
 	end
 end)
+prefix = '^9[^1Badger-Tags^9] ^3';
+RegisterCommand("headtag", function(source, args, rawCommand)
+	-- Change your headtag that is active 
+	if #args == 0 then 
+		-- List out what they have access to:
+		local tags = prefixes[source]
+		TriggerClientEvent('chatMessage', source, prefix .. 'You have access to the following Head-Tags:')
+		for i = 1, #tags do 
+			-- This is a tag 
+			TriggerClientEvent('chatMessage', source, '^9[^5' .. i .. '^9] ^3' .. tags[i])
+		end
+		TriggerClientEvent('chatMessage', source, prefix .. 'You can change your Head-Tag with /headtag <id>')
+	elseif #args == 1 then 
+		-- They picked one
+		if tonumber(args[1]) ~= nil then
+			local index = tonumber(args[1])
+			if prefixes[source][index] ~= nil then 
+				-- Change their active tag to this 
+				activeTagTracker[source] = prefixes[source][index]
+				-- Update clients: 
+				TriggerClientEvent("GetStaffID:StaffStr:Return", -1, prefixes, activeTagTracker, false)
+				TriggerClientEvent('chatMessage', source, prefix .. 'Your Head-Tag has been changed to: ^1' .. prefixes[source][index]);
+			else 
+				-- Not a valid ID 
+				TriggerClientEvent('chatMessage', source, prefix .. '^1ERROR: Not a valid Head-Tag ID');
+			end
+		else 
+			-- Not a valid ID 
+			TriggerClientEvent('chatMessage', source, prefix .. '^1ERROR: Not a valid Head-Tag ID');
+		end
+	else 
+		-- Not correct syntax 
+		TriggerClientEvent('chatMessage', source, prefix .. '^1ERROR: Not proper usage. /headtag <id>');
+	end
+end)
 alreadyGotRoles = {}
-
-RegisterNetEvent('dtid:playerSpawned')
-AddEventHandler('dtid:playerSpawned', function()
+activeTagTracker = {}
+AddEventHandler('playerDropped', function (reason) 
+	activeTagTracker[source] = nil 
+	prefixes[source] = nil 
+end)
+RegisterNetEvent('DiscordTag:Server:GetTag')
+AddEventHandler('DiscordTag:Server:GetTag', function()
 --AddEventHandler('chatMessage', function(source, name, msg)
 	local src = source
 	for k, v in ipairs(GetPlayerIdentifiers(src)) do
@@ -104,32 +143,34 @@ AddEventHandler('dtid:playerSpawned', function()
 				identifierDiscord = v
 			end
 	end
-	local roleGive = ""
+	local roleAccess = {}
+	local defaultRole = roleList[1][2]
 	if identifierDiscord then
-		if not has_value(alreadyGotRoles, GetPlayerName(src)) then
-			local roleIDs = exports.discord_perms:GetRoles(src)
-			if not (roleIDs == false) then
-				for i = 1, #roleList do
-					for j = 1, #roleIDs do
-						if (tostring(roleList[i][1]) == tostring(roleIDs[j])) then
-							local roleGive = roleList[i][2]
-							print(GetPlayerName(src) .. " has ID tag for: " .. roleList[i][2])
-							table.insert(prefixes, {GetPlayerName(src), roleGive})
-							table.insert(alreadyGotRoles, GetPlayerName(src))
-						end
+		local roleIDs = exports.discord_perms:GetRoles(src)
+		if not (roleIDs == false) then
+			table.insert(roleAccess, defaultRole)
+			activeTagTracker[src] = roleAccess[1];
+			for i = 1, #roleList do
+				for j = 1, #roleIDs do
+					if (tostring(roleList[i][1]) == tostring(roleIDs[j])) then
+						local roleGive = roleList[i][2]
+						print(GetPlayerName(src) .. " has ID tag for: " .. roleList[i][2])
+						table.insert(roleAccess, roleGive)
+						activeTagTracker[src] = roleGive;
 					end
 				end
-			else
-				table.insert(prefixes, {GetPlayerName(src), roleGive})
-				table.insert(alreadyGotRoles, GetPlayerName(src))
-				print(GetPlayerName(src) .. " has not gotten their permissions cause roleIDs == false")
 			end
-			table.insert(hasPrefix, GetPlayerName(src))
+			prefixes[src] = roleAccess; 
+		else
+			table.insert(roleAccess, defaultRole)
+			prefixes[src] = roleAccess;
+			activeTagTracker[src] = roleAccess[1];
+			print(GetPlayerName(src) .. " has not gotten their permissions cause roleIDs == false")
 		end
 	else
-		table.insert(prefixes, {GetPlayerName(src), roleGive})
-		table.insert(alreadyGotRoles, GetPlayerName(src))
+		table.insert(roleAccess, defaultRole)
+		prefixes[src] = roleAccess;
+		activeTagTracker[src] = roleAccess[1];
 	end
-	TriggerClientEvent("GetStaffID:StaffStr:Return", -1, prefixes, false)
-	TriggerClientEvent("ID:Tag-Toggle", -1, hidePrefix, false)
+	TriggerClientEvent("GetStaffID:StaffStr:Return", -1, prefixes, activeTagTracker, false)
 end)
