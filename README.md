@@ -1,5 +1,8 @@
 # DiscordTagIDs
-## Version 1.0
+## Continued Documentation
+https://docs.badger.store/fivem-discord-scripts/discordtagids
+## Discontinued Documentation
+### Version 1.0
 
 Yes yes I know... I only make discord-based scripts. Well, you're damn welcome!
 
@@ -9,7 +12,7 @@ I also wanna give thanks to MrDaGree for originally creating the script this was
 
 You must have this installed and properly working for this script to work --> https://forum.fivem.net/t/discord-roles-for-permissions-im-creative-i-know/233805
 
-### Commands:
+#### Commands:
 /tag-toggle - Turns off the prefix from being shown for the player (if they have a prefix in their tag)
 
 /tags-toggle - Turns off all tags from being shown above other players for ONLY yourself (good for streamers and/or pictures)
@@ -31,13 +34,13 @@ How does the tags look on players? Let's have a look :)
  ![](https://i.gyazo.com/253bc5c2bb10731cb870f1eb6f8893b4.jpg)
 ![](https://cdn.discordapp.com/attachments/577615878607077380/588710494483775508/unknown.png)
 
-### Installation
+#### Installation
 1. Download DiscordTagIDs 
 2. Extract the .zip and place the folder in your /resources/ of your Fivem server
 3. Start the resource in your server.cfg file
 4. Enjoy :)
 
-### My other work within Fivem
+#### My other work within Fivem
 [DiscordChatRoles](https://forum.fivem.net/t/discordchatroles-release/566338)
 
 [DiscordAcePerms](https://forum.fivem.net/t/discordaceperms-release/573044)
@@ -45,7 +48,7 @@ How does the tags look on players? Let's have a look :)
 [SandyVehiclesRestrict](https://github.com/TheWolfBadger/SandyVehiclesRestrict)
 
 
-### How to set up it up
+#### How to set up it up
 The 1s in this part of the server.lua file must be replaced with the IDs of your discord roles that are equal to the prefix you have associated with it:
 ```lua
 roleList = {
