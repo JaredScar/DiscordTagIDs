@@ -91,7 +91,8 @@ Citizen.CreateThread(function()
         end
 		if not (hideAll) then
 			for _, id in ipairs(GetActivePlayers()) do
-				print("The server ID of player " .. GetPlayerName(id) .. " is: " .. GetPlayerServerId(id))
+				-- Removing print statement that spams F8 console and lags some players.
+				-- print("The server ID of player " .. GetPlayerName(id) .. " is: " .. GetPlayerServerId(id))
 				local activeTag = activeTagTracker[GetPlayerServerId(id)]
 				if activeTag == nil then 
 					activeTag = ''
