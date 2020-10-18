@@ -3,7 +3,7 @@
 https://docs.badger.store/fivem-discord-scripts/discordtagids
 
 ## Jared's Developer Community [Discord]
-![Developer Discord](https://discordapp.com/api/guilds/597445834153525298/widget.png?style=banner4)
+[![Developer Discord](https://discordapp.com/api/guilds/597445834153525298/widget.png?style=banner4)](https://discord.com/invite/WjB5VFz)
 
 ## Discontinued Documentation
 ### Version 1.0
