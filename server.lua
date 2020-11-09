@@ -110,16 +110,20 @@ RegisterCommand("headtag", function(source, args, rawCommand)
 		-- List out what they have access to:
 		local tags = prefixes[source]
 		TriggerClientEvent('chatMessage', source, prefix .. 'You have access to the following Head-Tags:')
-		for i = 1, #tags do 
-			-- This is a tag 
-			TriggerClientEvent('chatMessage', source, '^9[^5' .. i .. '^9] ^3' .. tags[i])
+		if tags ~= nil then 
+			for i = 1, #tags do 
+				-- This is a tag 
+				TriggerClientEvent('chatMessage', source, '^9[^5' .. i .. '^9] ^3' .. tags[i])
+			end
+			TriggerClientEvent('chatMessage', source, prefix .. 'You can change your Head-Tag with /headtag <id>')
+		else 
+			TriggerClientEvent('chatMessage', source, '^1NONE');
 		end
-		TriggerClientEvent('chatMessage', source, prefix .. 'You can change your Head-Tag with /headtag <id>')
 	elseif #args == 1 then 
 		-- They picked one
 		if tonumber(args[1]) ~= nil then
 			local index = tonumber(args[1])
-			if prefixes[source][index] ~= nil then 
+			if prefixes[source][index] ~= nil and prefixes[source][index] ~= nil then 
 				-- Change their active tag to this 
 				activeTagTracker[source] = prefixes[source][index]
 				-- Update clients: 
