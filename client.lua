@@ -103,7 +103,7 @@ Citizen.CreateThread(function()
 				if activeTag == nil then 
 					activeTag = ''
 				end
-				if  ((NetworkIsPlayerActive( id )) and GetPlayerPed( id ) ~= GetPlayerPed( -1 )) then
+				if  ((NetworkIsPlayerActive( id )) and (GetPlayerPed( id ) ~= GetPlayerPed( -1 ) or Config.ShowOwnTag) ) then
 					ped = GetPlayerPed( id )
 					blip = GetBlipFromEntity( ped ) 
 	 
