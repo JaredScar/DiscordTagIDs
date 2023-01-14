@@ -1,4 +1,4 @@
-local showPlayerBlips = false
+local playerDiscordName = nil;
 local ignorePlayerNameDistance = false
 local playerNamesDist = 15
 local displayIDHeight = 1.5 --Height of ID above players head(starts at center body mass)
@@ -61,6 +61,11 @@ AddEventHandler("ID:Tag-Toggle", function(arr, error)
 	hidePrefix = arr
 end)
 
+RegisterNetEvent("DiscordTag:Server:GetDiscordName:Return")
+AddEventHandler("DiscordTag:Server:GetDiscordName:Return", function(discordUsername)
+	playerDiscordName = discordUsername;
+end)
+
 RegisterNetEvent("GetStaffID:StaffStr:Return")
 AddEventHandler("GetStaffID:StaffStr:Return", function(arr, activeTagTrack, error)
 	prefixes = arr
@@ -85,6 +90,7 @@ Citizen.CreateThread(function()
 	-- The player has spawned, we gotta get their tag 
 	Wait(1000);
 	TriggerServerEvent('DiscordTag:Server:GetTag'); 
+	TriggerServerEvent('DiscordTag:Server:GetDiscordName');
 end)
 
 colorIndex = 1;
@@ -110,47 +116,11 @@ Citizen.CreateThread(function()
 					x1, y1, z1 = table.unpack( GetEntityCoords( GetPlayerPed( -1 ), true ) )
 					x2, y2, z2 = table.unpack( GetEntityCoords( GetPlayerPed( id ), true ) )
 					distance = math.floor(GetDistanceBetweenCoords(x1,  y1,  z1,  x2,  y2,  z2,  true))
-					-- THIS IF IS FALSE BELOW, DO NOT WORRY ABOUT IT - Badger
-					if(ignorePlayerNameDistance) then
-						if NetworkIsPlayerTalking(id) then
-							red = 0
-							green = 0
-							blue = 255
-							if activeTag:find("~RGB~") then 
-								tag = activeTag;
-								tag = tag:gsub("~RGB~", colors[colorIndex]);
-								if timer <= 0 then 
-									colorIndex = colorIndex + 1;
-									--print("Changed color to rainbow color: " .. colors[colorIndex]);
-									if colorIndex >= #colors then 
-										colorIndex = 1;
-									end
-									timer = 3000;
-								end
-								DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~b~[" .. GetPlayerServerId(id) .. "]")
-							else 
-								DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~[" .. GetPlayerServerId(id) .. "]")
-							end 
-						else
-							red = 255
-							green = 255
-							blue = 255
-							if activeTag:find("~RGB~") then 
-								tag = activeTag;
-								tag = tag:gsub("~RGB~", colors[colorIndex]);
-								if timer <= 0 then 
-									colorIndex = colorIndex + 1;
-									--print("Changed color to rainbow color: " .. colors[colorIndex]);
-									if colorIndex >= #colors then 
-										colorIndex = 1;
-									end
-									timer = 3000;
-								end
-								DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~w~[" .. GetPlayerServerId(id) .. "]")
-							else 
-								DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~[" .. GetPlayerServerId(id) .. "]")
-							end 
-						end
+					local name = playerDiscordName;
+					local displayNameOrId = "" .. playerDiscordName;
+					if (name == nil) then 
+						name = GetPlayerServerId(id);
+						displayNameOrId = "[" .. GetPlayerServerId(id) .. "]";
 					end
 					local playName = GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id)))
 					if ((distance < playerNamesDist)) then
@@ -174,13 +144,13 @@ Citizen.CreateThread(function()
 												end
 												timer = 3000;
 											end
-											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~b~[" .. GetPlayerServerId(id) .. "]")
+											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~b~" .. displayNameOrId)
 										else 
-											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~[" .. GetPlayerServerId(id) .. "]")
+											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~" .. displayNameOrId)
 										end 
 									else
 										-- Don't show their ID tag with prefix then
-										DrawText3D(x2, y2, z2 + displayIDHeight, "~b~[" .. GetPlayerServerId(id) .. "]")
+										DrawText3D(x2, y2, z2 + displayIDHeight, "~b~" .. displayNameOrId)
 									end
 								end
 								prefixStr = ""
@@ -202,13 +172,13 @@ Citizen.CreateThread(function()
 												end
 												timer = 3000;
 											end
-											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~w~[" .. GetPlayerServerId(id) .. "]")
+											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~w~" .. displayNameOrId)
 										else 
-											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~[" .. GetPlayerServerId(id) .. "]")
+											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~" .. displayNameOrId)
 										end 
 									else
 										-- Don't show their ID tag with prefix then
-										DrawText3D(x2, y2, z2 + displayIDHeight, "~w~[" .. GetPlayerServerId(id) .. "]")
+										DrawText3D(x2, y2, z2 + displayIDHeight, "~w~" .. displayNameOrId)
 									end
 								end
 							end

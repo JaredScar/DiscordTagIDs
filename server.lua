@@ -149,6 +149,16 @@ AddEventHandler('playerDropped', function (reason)
 	activeTagTracker[source] = nil 
 	prefixes[source] = nil 
 end)
+
+RegisterNetEvent('DiscordTag:Server:GetDiscordName')
+AddEventHandler('DiscordTag:Server:GetDiscordName', function() 
+	local src = source;
+	local discordName = exports.Badger_Discord_API:GetDiscordName(src);
+	if (discordName ~= nil and Config.useDiscordName) then 
+		TriggerClientEvent('DiscordTag:Server:GetDiscordName:Return', src, discordName);
+	end
+end)
+
 RegisterNetEvent('DiscordTag:Server:GetTag')
 AddEventHandler('DiscordTag:Server:GetTag', function()
 --AddEventHandler('chatMessage', function(source, name, msg)
