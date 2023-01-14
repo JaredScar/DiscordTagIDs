@@ -3,6 +3,7 @@ Config = {
 	TagsForStaffOnly = true, -- "DiscordTagIDs.Use.Tag-Toggle"
 	ShowOwnTag = false, -- Should the tag also be shown for own user?
 	UseDiscordName = true,
+	ShowDiscordDescrim = false, -- Should it show Badger#0002 ?
 	FormatDisplayName = "{PLAYER_NAME} [{SERVER_ID}]",
 	roleList = {
 		{0, "~g~Member ~w~"},  
