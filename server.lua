@@ -154,9 +154,7 @@ RegisterNetEvent('DiscordTag:Server:GetDiscordName')
 AddEventHandler('DiscordTag:Server:GetDiscordName', function() 
 	local src = source;
 	local discordName = exports.Badger_Discord_API:GetDiscordName(src);
-	if (discordName ~= nil and Config.useDiscordName) then 
-		TriggerClientEvent('DiscordTag:Server:GetDiscordName:Return', src, discordName);
-	end
+	TriggerClientEvent('DiscordTag:Server:GetDiscordName:Return', src, discordName, Config.FormatDisplayName, Config.UseDiscordName);
 end)
 
 RegisterNetEvent('DiscordTag:Server:GetTag')

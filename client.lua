@@ -1,4 +1,5 @@
 local playerDiscordName = nil;
+local formatDisplayedName = "[{SERVER_ID}]";
 local ignorePlayerNameDistance = false
 local playerNamesDist = 15
 local displayIDHeight = 1.5 --Height of ID above players head(starts at center body mass)
@@ -62,8 +63,11 @@ AddEventHandler("ID:Tag-Toggle", function(arr, error)
 end)
 
 RegisterNetEvent("DiscordTag:Server:GetDiscordName:Return")
-AddEventHandler("DiscordTag:Server:GetDiscordName:Return", function(discordUsername)
-	playerDiscordName = discordUsername;
+AddEventHandler("DiscordTag:Server:GetDiscordName:Return", function(discordUsername, format, useDiscordName)
+	if (useDiscordName) then 
+		playerDiscordName = discordUsername;
+	end
+	formatDisplayedName = format;
 end)
 
 RegisterNetEvent("GetStaffID:StaffStr:Return")
@@ -116,13 +120,12 @@ Citizen.CreateThread(function()
 					x1, y1, z1 = table.unpack( GetEntityCoords( GetPlayerPed( -1 ), true ) )
 					x2, y2, z2 = table.unpack( GetEntityCoords( GetPlayerPed( id ), true ) )
 					distance = math.floor(GetDistanceBetweenCoords(x1,  y1,  z1,  x2,  y2,  z2,  true))
+					local displayName = formatDisplayedName;
 					local name = playerDiscordName;
-					local displayNameOrId = "";
 					if (name == nil) then 
-						name = GetPlayerServerId(id);
-						displayNameOrId = "[" .. GetPlayerServerId(id) .. "]";
+						displayName = displayName:gsub("{PLAYER_NAME}", GetPlayerName(id)):gsub("{SERVER_ID}", GetPlayerServerId(id));
 					else
-						displayNameOrId = displayNameOrId .. playerDiscordName; 
+						displayName = displayName:gsub("{PLAYER_NAME}", name):gsub("{SERVER_ID}", GetPlayerServerId(id));
 					end
 					local playName = GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id)))
 					if ((distance < playerNamesDist)) then
@@ -146,13 +149,13 @@ Citizen.CreateThread(function()
 												end
 												timer = 3000;
 											end
-											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~b~" .. displayNameOrId)
+											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~b~" .. displayName)
 										else 
-											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~" .. displayNameOrId)
+											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~" .. displayName)
 										end 
 									else
 										-- Don't show their ID tag with prefix then
-										DrawText3D(x2, y2, z2 + displayIDHeight, "~b~" .. displayNameOrId)
+										DrawText3D(x2, y2, z2 + displayIDHeight, "~b~" .. displayName)
 									end
 								end
 								prefixStr = ""
@@ -174,13 +177,13 @@ Citizen.CreateThread(function()
 												end
 												timer = 3000;
 											end
-											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~w~" .. displayNameOrId)
+											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~w~" .. displayName)
 										else 
-											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~" .. displayNameOrId)
+											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~" .. displayName)
 										end 
 									else
 										-- Don't show their ID tag with prefix then
-										DrawText3D(x2, y2, z2 + displayIDHeight, "~w~" .. displayNameOrId)
+										DrawText3D(x2, y2, z2 + displayIDHeight, "~w~" .. displayName)
 									end
 								end
 							end
