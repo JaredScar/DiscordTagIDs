@@ -117,10 +117,12 @@ Citizen.CreateThread(function()
 					x2, y2, z2 = table.unpack( GetEntityCoords( GetPlayerPed( id ), true ) )
 					distance = math.floor(GetDistanceBetweenCoords(x1,  y1,  z1,  x2,  y2,  z2,  true))
 					local name = playerDiscordName;
-					local displayNameOrId = "" .. playerDiscordName;
+					local displayNameOrId = "";
 					if (name == nil) then 
 						name = GetPlayerServerId(id);
 						displayNameOrId = "[" .. GetPlayerServerId(id) .. "]";
+					else
+						displayNameOrId = displayNameOrId .. playerDiscordName; 
 					end
 					local playName = GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id)))
 					if ((distance < playerNamesDist)) then
