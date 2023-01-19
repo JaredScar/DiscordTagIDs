@@ -66,7 +66,7 @@ RegisterNetEvent("DiscordTag:Server:GetDiscordName:Return")
 AddEventHandler("DiscordTag:Server:GetDiscordName:Return", function(serverId, discordUsername, format, useDiscordName)
 	if (useDiscordName) then 
 		if playerDiscordNames == nil then 
-			playerDiscordNames = [];
+			playerDiscordNames = {};
 		end
 		playerDiscordNames[serverId] = discordUsername;
 	end
