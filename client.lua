@@ -124,7 +124,10 @@ Citizen.CreateThread(function()
 					x2, y2, z2 = table.unpack( GetEntityCoords( GetPlayerPed( id ), true ) )
 					distance = math.floor(GetDistanceBetweenCoords(x1,  y1,  z1,  x2,  y2,  z2,  true))
 					local displayName = formatDisplayedName;
-					local name = playerDiscordNames[GetPlayerServerId(id)];
+					local name = nil;
+					if playerDiscordNames ~= nil then 
+						name = playerDiscordNames[GetPlayerServerId(id)];
+					end
 					if (name == nil) then 
 						displayName = displayName:gsub("{PLAYER_NAME}", GetPlayerName(id)):gsub("{SERVER_ID}", GetPlayerServerId(id));
 					else
