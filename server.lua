@@ -157,7 +157,7 @@ AddEventHandler('DiscordTag:Server:GetDiscordName', function()
 	if (not Config.ShowDiscordDescrim and discordName ~= nil) then
 		discordName = stringsplit(discordName, "#")[1];
 	end
-	TriggerClientEvent('DiscordTag:Server:GetDiscordName:Return', src, discordName, Config.FormatDisplayName, Config.UseDiscordName);
+	TriggerClientEvent('DiscordTag:Server:GetDiscordName:Return', -1, src, discordName, Config.FormatDisplayName, Config.UseDiscordName);
 end)
 
 RegisterNetEvent('DiscordTag:Server:GetTag')

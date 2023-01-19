@@ -1,4 +1,4 @@
-local playerDiscordName = nil;
+local playerDiscordNames = nil;
 local formatDisplayedName = "[{SERVER_ID}]";
 local ignorePlayerNameDistance = false
 local playerNamesDist = 15
@@ -63,9 +63,9 @@ AddEventHandler("ID:Tag-Toggle", function(arr, error)
 end)
 
 RegisterNetEvent("DiscordTag:Server:GetDiscordName:Return")
-AddEventHandler("DiscordTag:Server:GetDiscordName:Return", function(discordUsername, format, useDiscordName)
+AddEventHandler("DiscordTag:Server:GetDiscordName:Return", function(serverId, discordUsername, format, useDiscordName)
 	if (useDiscordName) then 
-		playerDiscordName = discordUsername;
+		playerDiscordNames[serverId] = discordUsername;
 	end
 	formatDisplayedName = format;
 end)
@@ -121,7 +121,7 @@ Citizen.CreateThread(function()
 					x2, y2, z2 = table.unpack( GetEntityCoords( GetPlayerPed( id ), true ) )
 					distance = math.floor(GetDistanceBetweenCoords(x1,  y1,  z1,  x2,  y2,  z2,  true))
 					local displayName = formatDisplayedName;
-					local name = playerDiscordName;
+					local name = playerDiscordNames[GetPlayerServerId(id)];
 					if (name == nil) then 
 						displayName = displayName:gsub("{PLAYER_NAME}", GetPlayerName(id)):gsub("{SERVER_ID}", GetPlayerServerId(id));
 					else
