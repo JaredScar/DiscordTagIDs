@@ -103,101 +103,109 @@ end)
 colorIndex = 1;
 colors = {"~g~", "~b~", "~y~", "~o~", "~r~", "~p~", "~w~"}
 timer = 500;
+function triggerTagUpdate()
+	if not (hideAll) then
+		for _, id in ipairs(GetActivePlayers()) do
+			local activeTag = activeTagTracker[GetPlayerServerId(id)]
+			timer = timer - 10;
+			if activeTag == nil then 
+				activeTag = ''
+			end
+			if  ((NetworkIsPlayerActive( id )) and (GetPlayerPed( id ) ~= GetPlayerPed( -1 ) or Config.ShowOwnTag) ) then
+				ped = GetPlayerPed( id )
+				blip = GetBlipFromEntity( ped ) 
+
+				x1, y1, z1 = table.unpack( GetEntityCoords( GetPlayerPed( -1 ), true ) )
+				x2, y2, z2 = table.unpack( GetEntityCoords( GetPlayerPed( id ), true ) )
+				distance = math.floor(GetDistanceBetweenCoords(x1,  y1,  z1,  x2,  y2,  z2,  true))
+				local displayName = formatDisplayedName;
+				local name = nil;
+				if playerDiscordNames ~= nil then 
+					name = playerDiscordNames[GetPlayerServerId(id)];
+				end
+				if (name == nil) then 
+					displayName = displayName:gsub("{PLAYER_NAME}", GetPlayerName(id)):gsub("{SERVER_ID}", GetPlayerServerId(id));
+				else
+					displayName = displayName:gsub("{PLAYER_NAME}", name):gsub("{SERVER_ID}", GetPlayerServerId(id));
+				end
+				local playName = GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id)))
+				if ((distance < playerNamesDist)) then
+					if not (ignorePlayerNameDistance) then
+						if NetworkIsPlayerTalking(id) then
+							red = 0
+							green = 0
+							blue = 255
+							
+							if not has_value(hideTags, playName) then
+								if not (has_value(hidePrefix, playName)) then
+									-- Show their ID tag with prefix then
+									if activeTag:find("~RGB~") then 
+										tag = activeTag;
+										tag = tag:gsub("~RGB~", colors[colorIndex]);
+										if timer <= 0 then 
+											colorIndex = colorIndex + 1;
+											--print("Changed color to rainbow color: " .. colors[colorIndex]);
+											if colorIndex >= #colors then 
+												colorIndex = 1;
+											end
+											timer = 3000;
+										end
+										DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~b~" .. displayName)
+									else 
+										DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~" .. displayName)
+									end 
+								else
+									-- Don't show their ID tag with prefix then
+									DrawText3D(x2, y2, z2 + displayIDHeight, "~b~" .. displayName)
+								end
+							end
+							prefixStr = ""
+						else
+							red = 255
+							green = 255
+							blue = 255
+							if not has_value(hideTags, playName) then
+								if not (has_value(hidePrefix, playName)) then
+									-- Show their ID tag with prefix then
+									if activeTag:find("~RGB~") then 
+										tag = activeTag;
+										tag = tag:gsub("~RGB~", colors[colorIndex]);
+										if timer <= 0 then 
+											colorIndex = colorIndex + 1;
+											--print("Changed color to rainbow color: " .. colors[colorIndex]);
+											if colorIndex >= #colors then 
+												colorIndex = 1;
+											end
+											timer = 3000;
+										end
+										DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~w~" .. displayName)
+									else 
+										DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~" .. displayName)
+									end 
+								else
+									-- Don't show their ID tag with prefix then
+									DrawText3D(x2, y2, z2 + displayIDHeight, "~w~" .. displayName)
+								end
+							end
+						end
+					end
+				end  
+			end
+		end
+	end
+end
 Citizen.CreateThread(function()
     while true do
         for i=0,99 do
             N_0x31698aa80e0223f8(i)
         end
-		if not (hideAll) then
-			for _, id in ipairs(GetActivePlayers()) do
-				--print("The server ID of player " .. GetPlayerName(id) .. " is: " .. GetPlayerServerId(id))
-				local activeTag = activeTagTracker[GetPlayerServerId(id)]
-				timer = timer - 10;
-				if activeTag == nil then 
-					activeTag = ''
-				end
-				if  ((NetworkIsPlayerActive( id )) and (GetPlayerPed( id ) ~= GetPlayerPed( -1 ) or Config.ShowOwnTag) ) then
-					ped = GetPlayerPed( id )
-					blip = GetBlipFromEntity( ped ) 
-	 
-					x1, y1, z1 = table.unpack( GetEntityCoords( GetPlayerPed( -1 ), true ) )
-					x2, y2, z2 = table.unpack( GetEntityCoords( GetPlayerPed( id ), true ) )
-					distance = math.floor(GetDistanceBetweenCoords(x1,  y1,  z1,  x2,  y2,  z2,  true))
-					local displayName = formatDisplayedName;
-					local name = nil;
-					if playerDiscordNames ~= nil then 
-						name = playerDiscordNames[GetPlayerServerId(id)];
-					end
-					if (name == nil) then 
-						displayName = displayName:gsub("{PLAYER_NAME}", GetPlayerName(id)):gsub("{SERVER_ID}", GetPlayerServerId(id));
-					else
-						displayName = displayName:gsub("{PLAYER_NAME}", name):gsub("{SERVER_ID}", GetPlayerServerId(id));
-					end
-					local playName = GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id)))
-					if ((distance < playerNamesDist)) then
-						if not (ignorePlayerNameDistance) then
-							if NetworkIsPlayerTalking(id) then
-								red = 0
-								green = 0
-								blue = 255
-								
-								if not has_value(hideTags, playName) then
-									if not (has_value(hidePrefix, playName)) then
-										-- Show their ID tag with prefix then
-										if activeTag:find("~RGB~") then 
-											tag = activeTag;
-											tag = tag:gsub("~RGB~", colors[colorIndex]);
-											if timer <= 0 then 
-												colorIndex = colorIndex + 1;
-												--print("Changed color to rainbow color: " .. colors[colorIndex]);
-												if colorIndex >= #colors then 
-													colorIndex = 1;
-												end
-												timer = 3000;
-											end
-											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~b~" .. displayName)
-										else 
-											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~" .. displayName)
-										end 
-									else
-										-- Don't show their ID tag with prefix then
-										DrawText3D(x2, y2, z2 + displayIDHeight, "~b~" .. displayName)
-									end
-								end
-								prefixStr = ""
-							else
-								red = 255
-								green = 255
-								blue = 255
-								if not has_value(hideTags, playName) then
-									if not (has_value(hidePrefix, playName)) then
-										-- Show their ID tag with prefix then
-										if activeTag:find("~RGB~") then 
-											tag = activeTag;
-											tag = tag:gsub("~RGB~", colors[colorIndex]);
-											if timer <= 0 then 
-												colorIndex = colorIndex + 1;
-												--print("Changed color to rainbow color: " .. colors[colorIndex]);
-												if colorIndex >= #colors then 
-													colorIndex = 1;
-												end
-												timer = 3000;
-											end
-											DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~w~" .. displayName)
-										else 
-											DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~" .. displayName)
-										end 
-									else
-										-- Don't show their ID tag with prefix then
-										DrawText3D(x2, y2, z2 + displayIDHeight, "~w~" .. displayName)
-									end
-								end
-							end
-						end
-					end  
-				end
+		if (Config.UseKeyBind) then
+			if (IsControlPressed(0, Config.KeyBind)) then 
+				triggerTagUpdate();
 			end
+		else
+			triggerTagUpdate(); 
 		end
-        Citizen.Wait(0)
+        Citizen.Wait(0);
     end
 end)
