@@ -4,6 +4,7 @@ Config = {
 	ShowOwnTag = true, -- Should the tag also be shown for own user?
 	UseDiscordName = true,
 	ShowDiscordDescrim = false, -- Should it show Badger#0002 ?
+	RequiresLineOfSight = true, -- Requires the player be in their line of sight for tags to be shown
 	FormatDisplayName = "{PLAYER_NAME} [{SERVER_ID}]",
 	UseKeyBind = true, -- It will only show on keybind press
 	KeyBind = 10, -- Pageup -- USE https://docs.fivem.net/docs/game-references/controls/ for keycodes

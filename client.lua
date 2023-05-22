@@ -45,7 +45,7 @@ prefixStr = ""
 
 RegisterNetEvent("ID:HideTag")
 AddEventHandler("ID:HideTag", function(arr, error)
-	hideTags = arr
+	hideTags = arr; 
 end)
 
 RegisterNetEvent("ID:Tags-Toggle")
@@ -131,6 +131,11 @@ function triggerTagUpdate()
 				local playName = GetPlayerName(GetPlayerFromServerId(GetPlayerServerId(id)))
 				if ((distance < playerNamesDist)) then
 					if not (ignorePlayerNameDistance) then
+						if (Config.RequiresLineOfSight) then 
+							if (not HasEntityClearLosToEntity(PlayerPedId(), GetPlayerPed(id), 17) and (GetPlayerPed( id ) ~= GetPlayerPed( -1 )) ) then 
+								return; -- They cannot see this play
+							end
+						end
 						if NetworkIsPlayerTalking(id) then
 							red = 0
 							green = 0
