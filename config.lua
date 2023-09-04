@@ -12,6 +12,13 @@ Config = {
 		{0, "~g~Member ~w~"},  
 		{597449475547463681, "~b~Developer ~w~"},
 		{597450498060058624, "~r~STAFF ~w~"},  
-		{"Founder", "~o~FOUNDER ~w~"}, 
+		{"Founder", "~RGB~FOUNDER ~w~"}, 
+	},
+	HUD = {
+		Display = true,
+		Format = '~g~Active Headtag: {HEADTAG}',
+		x = .75,
+		y = .50,
+		Scale = 1
 	},
 }

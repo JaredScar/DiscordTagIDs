@@ -34,6 +34,24 @@ function DrawText3D(x,y,z, text)
     end
 end
 
+function Draw2DText(x, y, text, scale, center)
+    -- Draw text on screen
+    SetTextFont(4)
+    SetTextProportional(7)
+    SetTextScale(scale, scale)
+    SetTextColour(255, 255, 255, 255)
+    SetTextDropShadow(0, 0, 0, 0,255)
+    SetTextDropShadow()
+    SetTextEdge(4, 0, 0, 0, 255)
+    SetTextOutline()
+    if center then 
+    	SetTextJustification(0)
+    end
+    SetTextEntry("STRING")
+    AddTextComponentString(text)
+    DrawText(x, y)
+end
+
 prefixes = {}
 hidePrefix = {}
 hideTags = {}
@@ -77,9 +95,6 @@ RegisterNetEvent("GetStaffID:StaffStr:Return")
 AddEventHandler("GetStaffID:StaffStr:Return", function(arr, activeTagTrack, error)
 	prefixes = arr
 	activeTagTracker = activeTagTrack
-	for k, v in pairs(activeTagTracker) do 
-		print("The key is " .. k .. " and value is: " .. v)
-	end
 end)
 activeTagTracker = {}
 
@@ -199,6 +214,16 @@ function triggerTagUpdate()
 		end
 	end
 end
+
+if (Config.HUD.Display) then 
+	Citizen.CreateThread(function()
+		while true do 
+			Citizen.Wait(0);
+			Draw2DText(Config.HUD.x, Config.HUD.y, Config.HUD.Format:gsub("{HEADTAG}", activeTag), Config.HUD.Scale, false);
+		end
+	end)
+end 
+
 Citizen.CreateThread(function()
     while true do
         for i=0,99 do
