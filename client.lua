@@ -219,10 +219,12 @@ if (Config.HUD.Display) then
 	Citizen.CreateThread(function()
 		while true do 
 			Citizen.Wait(0);
-			Draw2DText(Config.HUD.x, Config.HUD.y, Config.HUD.Format:gsub("{HEADTAG}", activeTag), Config.HUD.Scale, false);
+			Draw2DText(Config.HUD.x, Config.HUD.y, Config.HUD.Format:gsub("{HEADTAG}", activeTagTracker[GetPlayerServerId(PlayerId())]), Config.HUD.Scale, false);
 		end
 	end)
 end 
+
+showTags = Config.KeyBindToggleDefaultShow;
 
 Citizen.CreateThread(function()
     while true do
@@ -230,8 +232,17 @@ Citizen.CreateThread(function()
             N_0x31698aa80e0223f8(i)
         end
 		if (Config.UseKeyBind) then
-			if (IsControlPressed(0, Config.KeyBind)) then 
-				triggerTagUpdate();
+			if (not Config.UseKeyBindToggle) then 
+				if (IsControlPressed(0, Config.KeyBind)) then 
+					triggerTagUpdate();
+				end
+			else 
+				if (IsControlJustReleased(0, Config.KeyBind)) then 
+					showTags = not showTags;
+				end
+				if (showTags) then 
+					triggerTagUpdate();
+				end
 			end
 		else
 			triggerTagUpdate(); 
