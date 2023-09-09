@@ -18,9 +18,9 @@ Config = {
 	},
 	HUD = {
 		Display = true,
-		Format = '~g~Active Headtag: {HEADTAG}',
+		Format = '~p~Active Headtag: {HEADTAG}',
 		x = .75,
 		y = .50,
-		Scale = 1
+		Scale = .55
 	},
 }

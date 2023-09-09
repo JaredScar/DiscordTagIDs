@@ -219,7 +219,14 @@ if (Config.HUD.Display) then
 	Citizen.CreateThread(function()
 		while true do 
 			Citizen.Wait(0);
-			Draw2DText(Config.HUD.x, Config.HUD.y, Config.HUD.Format:gsub("{HEADTAG}", activeTagTracker[GetPlayerServerId(PlayerId())]), Config.HUD.Scale, false);
+			local headtag = activeTagTracker[GetPlayerServerId(PlayerId())];
+			if (headtag == nil) then 
+				headtag = Config.roleList[1][2];
+			end
+			if (headtag == nil) then 
+				headtag = 'N/A'
+			end
+			Draw2DText(Config.HUD.x, Config.HUD.y, Config.HUD.Format:gsub("{HEADTAG}", headtag), Config.HUD.Scale, true);
 		end
 	end)
 end 
