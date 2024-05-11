@@ -15,5 +15,8 @@ server_scripts {
 
 server_exports {
     "HideUserTag",
-    "ShowUserTag"
+    "ShowUserTag",
+    "GetActiveUserTag",
+    "GetUserTags",
+    "SetUserTag",
 }

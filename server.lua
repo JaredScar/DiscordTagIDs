@@ -143,6 +143,28 @@ RegisterCommand("headtag", function(source, args, rawCommand)
 	end
 end)
 
+function GetActiveUserTag(src)
+	if activeTagTracker[src] ~= nil then
+		return activeTagTracker[src]
+	end
+	return nil
+end
+function GetUserTags(src)
+	if prefixes[src] ~= nil then
+		return prefixes[src]
+	end
+	return nil
+end
+function SetUserTag(src, ind)
+	if prefixes[src] ~= nil and prefixes[src][ind] ~= nil then
+		activeTagTracker[src] = prefixes[src][ind]
+		TriggerClientEvent("GetStaffID:StaffStr:Return", -1, prefixes, activeTagTracker, false)
+		TriggerClientEvent('chatMessage', src, prefix .. 'Your Head-Tag has been changed to: ^1' .. prefixes[src][ind]);
+		return true 
+	end
+	return false
+end
+
 alreadyGotRoles = {}
 activeTagTracker = {}
 AddEventHandler('playerDropped', function (reason) 
