@@ -144,18 +144,19 @@ RegisterCommand("headtag", function(source, args, rawCommand)
 end)
 
 function GetActiveUserTag(src)
-	if activeTagTracker[src] ~= nil then
-		return activeTagTracker[src]
+	if activeTagTracker[tonumber(src)] ~= nil then
+		return activeTagTracker[tonumber(src)]
 	end
 	return nil
 end
 function GetUserTags(src)
-	if prefixes[src] ~= nil then
-		return prefixes[src]
+	if prefixes[tonumber(src)] ~= nil then
+		return prefixes[tonumber(src)]
 	end
 	return nil
 end
 function SetUserTag(src, ind)
+	src = tonumber(src)
 	if prefixes[src] ~= nil and prefixes[src][ind] ~= nil then
 		activeTagTracker[src] = prefixes[src][ind]
 		TriggerClientEvent("GetStaffID:StaffStr:Return", -1, prefixes, activeTagTracker, false)
