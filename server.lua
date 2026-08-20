@@ -242,16 +242,27 @@ if Config.CustomTags.Enabled then
 
 -- In-memory store: customTagsData[identifier] = { {text, color}, ... }
 local customTagsData = {}
--- Cached slot counts per server ID: ctSlotCache[src] = number
-local ctSlotCache = {}
+-- Cached slot counts  per server ID: ctSlotCache[src] = number
+local ctSlotCache    = {}
+-- Cached allowed pattern tokens per server ID: ctPatternCache[src] = {string,...}
+local ctPatternCache = {}
 
--- Valid GTA color codes players may use
-local VALID_COLORS = {
-	"~r~", "~g~", "~b~", "~y~", "~o~", "~p~", "~w~", "~RGB~"
-}
-local function isValidColor(c)
-	for _, v in ipairs(VALID_COLORS) do
+-- Base solid colors always available to any custom-tag slot holder
+local BASE_COLORS = {"~r~", "~g~", "~b~", "~y~", "~o~", "~p~", "~w~"}
+
+local function isBaseColor(c)
+	for _, v in ipairs(BASE_COLORS) do
 		if v == c then return true end
+	end
+	return false
+end
+
+-- Returns true if `color` is a valid base color OR a pattern token the player has unlocked
+local function isColorAllowedForPlayer(color, src)
+	if isBaseColor(color) then return true end
+	local patterns = ctPatternCache[src] or {}
+	for _, p in ipairs(patterns) do
+		if p == color then return true end
 	end
 	return false
 end
@@ -338,56 +349,81 @@ else
 	CT_LoadFlatFile()
 end
 
--- ── Slot count ───────────────────────────────────────────────────────────────
--- Returns how many custom tag slots this player is entitled to.
--- Checks every SlotPermissions entry and returns the highest matching value.
-local function CT_GetSlotCount(src)
+-- ── Slot count & pattern permissions ─────────────────────────────────────────
+-- Returns (maxSlots, allowedPatterns[]).
+-- maxSlots    = highest slots value among all qualifying permission entries.
+-- allowedPatterns = union of all `patterns` lists from qualifying entries.
+local function CT_GetPermissions(src)
 	local maxSlots = 0
-	local roleIDs = nil
+	local patterns = {}
+	local roleIDs  = nil
+
+	local function addPattern(p)
+		for _, existing in ipairs(patterns) do
+			if existing == p then return end
+		end
+		table.insert(patterns, p)
+	end
 
 	for _, perm in ipairs(Config.CustomTags.SlotPermissions) do
+		local qualifies = false
+
 		if perm.type == "ace" then
-			if IsPlayerAceAllowed(src, perm.perm) and perm.slots > maxSlots then
-				maxSlots = perm.slots
-			end
+			qualifies = IsPlayerAceAllowed(src, perm.perm)
 		elseif perm.type == "discord" then
-			-- Lazy-fetch role IDs once per call
 			if roleIDs == nil then
 				roleIDs = exports.Badger_Discord_API:GetDiscordRoles(src) or {}
 			end
 			for _, rid in ipairs(roleIDs) do
-				if exports.Badger_Discord_API:CheckEqual(perm.roleId, rid) and perm.slots > maxSlots then
-					maxSlots = perm.slots
+				if exports.Badger_Discord_API:CheckEqual(perm.roleId, rid) then
+					qualifies = true; break
 				end
 			end
 		end
+
+		if qualifies then
+			if perm.slots > maxSlots then maxSlots = perm.slots end
+			if perm.patterns then
+				for _, p in ipairs(perm.patterns) do addPattern(p) end
+			end
+		end
 	end
-	return maxSlots
+
+	return maxSlots, patterns
 end
 
-function CT_CacheSlotCount(src, _discordIdentifier)
-	ctSlotCache[src] = CT_GetSlotCount(src)
+function CT_CachePermissions(src)
+	local slots, patterns = CT_GetPermissions(src)
+	ctSlotCache[src]    = slots
+	ctPatternCache[src] = patterns
 end
+
+-- Keep old name as alias so the GetTag handler still compiles
+CT_CacheSlotCount = CT_CachePermissions
 
 AddEventHandler('playerDropped', function()
-	ctSlotCache[source] = nil
+	ctSlotCache[source]    = nil
+	ctPatternCache[source] = nil
 end)
 
 -- ── Net events ───────────────────────────────────────────────────────────────
 
--- Client requests the NUI open: returns their custom tags + slot count
+-- Client requests the NUI open: returns their custom tags, slot count, and allowed patterns
 RegisterNetEvent('DiscordTag:CustomTag:Open')
 AddEventHandler('DiscordTag:CustomTag:Open', function()
 	local src = source
 	local identifier = getPlayerIdentifier(src)
 	if not identifier then
-		TriggerClientEvent('DiscordTag:CustomTag:OpenReturn', src, {}, 0)
+		TriggerClientEvent('DiscordTag:CustomTag:OpenReturn', src, {}, 0, {})
 		return
 	end
-	local slots = ctSlotCache[src] or CT_GetSlotCount(src)
-	ctSlotCache[src] = slots
-	local tags = customTagsData[identifier] or {}
-	TriggerClientEvent('DiscordTag:CustomTag:OpenReturn', src, tags, slots)
+	if not ctSlotCache[src] then
+		CT_CachePermissions(src)
+	end
+	local slots    = ctSlotCache[src]
+	local patterns = ctPatternCache[src] or {}
+	local tags     = customTagsData[identifier] or {}
+	TriggerClientEvent('DiscordTag:CustomTag:OpenReturn', src, tags, slots, patterns)
 end)
 
 -- Client saves (create or update) a custom tag
@@ -398,8 +434,8 @@ AddEventHandler('DiscordTag:CustomTag:Save', function(payload)
 	local identifier = getPlayerIdentifier(src)
 	if not identifier then return end
 
-	local slots = ctSlotCache[src] or CT_GetSlotCount(src)
-	ctSlotCache[src] = slots
+	if not ctSlotCache[src] then CT_CachePermissions(src) end
+	local slots = ctSlotCache[src]
 
 	-- Validate text
 	local text = tostring(payload.text or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -412,10 +448,10 @@ AddEventHandler('DiscordTag:CustomTag:Save', function(payload)
 		return
 	end
 
-	-- Validate color
+	-- Validate color (base color OR an unlocked pattern token)
 	local color = tostring(payload.color or "~w~")
-	if not isValidColor(color) then
-		TriggerClientEvent('DiscordTag:CustomTag:Error', src, "Invalid color code.")
+	if not isColorAllowedForPlayer(color, src) then
+		TriggerClientEvent('DiscordTag:CustomTag:Error', src, "That color or pattern is not available to you.")
 		return
 	end
 
@@ -474,7 +510,7 @@ AddEventHandler('DiscordTag:CustomTag:Delete', function(payload)
 		CT_SaveFlatFile()
 	end
 
-	local slots = ctSlotCache[src] or CT_GetSlotCount(src)
+	local slots = ctSlotCache[src] or 0
 	TriggerClientEvent('DiscordTag:CustomTag:SaveReturn', src, tags, slots)
 end)
 

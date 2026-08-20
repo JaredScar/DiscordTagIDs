@@ -16,6 +16,23 @@ Config = {
 		{597450498060058624, "~r~STAFF ~w~"},  
 		{"Founder", "~RGB~FOUNDER ~w~"}, 
 	},
+
+	-- Milliseconds between each step when cycling through a color pattern.
+	-- Lower = faster cycling.  Ported from BadgerTools-Revamped.
+	ColorChangeSpeed = 500,
+
+	-- Color pattern tokens that can be used in role tags AND custom tags.
+	-- Each key is the token you embed in a tag string (e.g. "~RGB~VIP ~w~").
+	-- The value is an ordered list of GTA color codes that cycle at ColorChangeSpeed.
+	-- You can add your own tokens here — just reference them in roleList or SlotPermissions.patterns.
+	ColorPatterns = {
+		['~RGB~']       = {'~g~', '~b~', '~y~', '~o~', '~r~', '~p~', '~w~'},
+		['~CHRISTMAS~'] = {'~r~', '~g~'},
+		['~AMERICA~']   = {'~r~', '~w~', '~b~'},
+		['~HALLOWEEN~'] = {'~o~', '~w~'},
+		['~DEVIL~']     = {'~r~', '~c~', '~m~'},
+	},
+
 	HUD = {
 		Display = true,
 		Format = '~p~Active Headtag: {HEADTAG}',
@@ -44,15 +61,22 @@ Config = {
 		},
 
 		-- Players receive the HIGHEST matching slot count from this list.
+		-- The UNION of all matching `patterns` lists is what they can use in custom tags.
+		-- Base solid colors (~r~ ~g~ ~b~ ~y~ ~o~ ~p~ ~w~) are always available.
 		-- type "ace"     → FiveM ACE permission checked with IsPlayerAceAllowed
 		-- type "discord" → Discord role ID (number) checked via Badger_Discord_API
-		-- Add/remove entries as needed; the list is evaluated top-to-bottom and
-		-- the highest slots value the player qualifies for is used.
 		SlotPermissions = {
-			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.5", slots = 5},
-			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.3", slots = 3},
-			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.1", slots = 1},
-			-- {type = "discord", roleId = 123456789012345678,           slots = 3},
+			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.5", slots = 5,
+			 patterns = {"~RGB~", "~CHRISTMAS~", "~AMERICA~", "~HALLOWEEN~", "~DEVIL~"}},
+
+			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.3", slots = 3,
+			 patterns = {"~RGB~"}},
+
+			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.1", slots = 1,
+			 patterns = {}},
+
+			-- {type = "discord", roleId = 123456789012345678, slots = 3,
+			--  patterns = {"~RGB~", "~CHRISTMAS~"}},
 		},
 	},
 }

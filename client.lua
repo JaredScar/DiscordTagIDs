@@ -115,14 +115,33 @@ Citizen.CreateThread(function()
 	TriggerServerEvent('DiscordTag:Server:GetDiscordName');
 end)
 
-colorIndex = 1;
-colors = {"~g~", "~b~", "~y~", "~o~", "~r~", "~p~", "~w~"}
-timer = 500;
+colorPatternIndex      = {}
+colorPatternLastChange = {}
+
+-- Resolve all ColorPattern tokens in a tag string to their current cycling color.
+-- Uses GetGameTimer() for millisecond-accurate timing independent of framerate.
+local function resolvePatternColors(tag)
+	local now = GetGameTimer()
+	for patternName, patternColors in pairs(Config.ColorPatterns) do
+		if tag:find(patternName, 1, true) then
+			if not colorPatternLastChange[patternName] then
+				colorPatternLastChange[patternName] = now
+				colorPatternIndex[patternName]      = 1
+			end
+			local idx = colorPatternIndex[patternName]
+			tag = tag:gsub(patternName, patternColors[idx], 1)
+			if (now - colorPatternLastChange[patternName]) >= Config.ColorChangeSpeed then
+				colorPatternLastChange[patternName] = now
+				colorPatternIndex[patternName]      = (idx % #patternColors) + 1
+			end
+		end
+	end
+	return tag
+end
 function triggerTagUpdate()
 	if not (hideAll) then
 		for _, id in ipairs(GetActivePlayers()) do
 			local activeTag = activeTagTracker[GetPlayerServerId(id)]
-			timer = timer - 10;
 			if activeTag == nil then 
 				activeTag = ''
 			end
@@ -148,62 +167,28 @@ function triggerTagUpdate()
 					if not (ignorePlayerNameDistance) then
 						if (Config.RequiresLineOfSight) then 
 							if (not HasEntityClearLosToEntity(PlayerPedId(), GetPlayerPed(id), 17) and (GetPlayerPed( id ) ~= GetPlayerPed( -1 )) ) then 
-								return; -- They cannot see this play
+								return; -- They cannot see this player
 							end
 						end
+
+						local resolvedTag = resolvePatternColors(activeTag)
+
 						if NetworkIsPlayerTalking(id) then
-							red = 0
-							green = 0
-							blue = 255
-							
+							red = 0; green = 0; blue = 255
 							if not has_value(hideTags, playName) then
 								if not (has_value(hidePrefix, playName)) then
-									-- Show their ID tag with prefix then
-									if activeTag:find("~RGB~") then 
-										tag = activeTag;
-										tag = tag:gsub("~RGB~", colors[colorIndex]);
-										if timer <= 0 then 
-											colorIndex = colorIndex + 1;
-											--print("Changed color to rainbow color: " .. colors[colorIndex]);
-											if colorIndex >= #colors then 
-												colorIndex = 1;
-											end
-											timer = 3000;
-										end
-										DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~b~" .. displayName)
-									else 
-										DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~b~" .. displayName)
-									end 
+									DrawText3D(x2, y2, z2 + displayIDHeight, resolvedTag .. "~b~" .. displayName)
 								else
-									-- Don't show their ID tag with prefix then
 									DrawText3D(x2, y2, z2 + displayIDHeight, "~b~" .. displayName)
 								end
 							end
 							prefixStr = ""
 						else
-							red = 255
-							green = 255
-							blue = 255
+							red = 255; green = 255; blue = 255
 							if not has_value(hideTags, playName) then
 								if not (has_value(hidePrefix, playName)) then
-									-- Show their ID tag with prefix then
-									if activeTag:find("~RGB~") then 
-										tag = activeTag;
-										tag = tag:gsub("~RGB~", colors[colorIndex]);
-										if timer <= 0 then 
-											colorIndex = colorIndex + 1;
-											--print("Changed color to rainbow color: " .. colors[colorIndex]);
-											if colorIndex >= #colors then 
-												colorIndex = 1;
-											end
-											timer = 3000;
-										end
-										DrawText3D(x2, y2, z2 + displayIDHeight, tag .. "~w~" .. displayName)
-									else 
-										DrawText3D(x2, y2, z2 + displayIDHeight, activeTag .. "~w~" .. displayName)
-									end 
+									DrawText3D(x2, y2, z2 + displayIDHeight, resolvedTag .. "~w~" .. displayName)
 								else
-									-- Don't show their ID tag with prefix then
 									DrawText3D(x2, y2, z2 + displayIDHeight, "~w~" .. displayName)
 								end
 							end
@@ -277,14 +262,15 @@ end
 
 -- Server sends back the data needed to populate the NUI
 RegisterNetEvent('DiscordTag:CustomTag:OpenReturn')
-AddEventHandler('DiscordTag:CustomTag:OpenReturn', function(tags, slots)
+AddEventHandler('DiscordTag:CustomTag:OpenReturn', function(tags, slots, patterns)
 	nuiOpen = true
 	SetNuiFocus(true, true)
 	SendNUIMessage({
-		action  = "open",
-		tags    = tags,
-		slots   = slots,
-		maxLen  = Config.CustomTags.MaxTextLength,
+		action   = "open",
+		tags     = tags,
+		slots    = slots,
+		patterns = patterns,
+		maxLen   = Config.CustomTags.MaxTextLength,
 	})
 end)
 

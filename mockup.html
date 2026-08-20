@@ -340,12 +340,25 @@ body::after {
 #input-text:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(108,99,255,0.12); }
 #input-text::placeholder { color: var(--text-dim); }
 
-#color-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+#color-grid { display: flex; flex-direction: column; gap: 10px; }
+.color-section-label {
+    font-size: 10px; font-weight: 700; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.6px;
+    display: flex; align-items: center; gap: 8px; margin-bottom: -2px;
+}
+.pattern-label { color: var(--accent); opacity: 0.85; }
+.pattern-label-badge {
+    font-size: 9px; font-weight: 700; color: var(--accent);
+    background: rgba(108,99,255,0.14); border: 1px solid rgba(108,99,255,0.3);
+    border-radius: 20px; padding: 1px 7px; letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+.color-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .color-swatch {
     width: 40px; height: 40px; border-radius: var(--radius-sm);
     cursor: pointer; border: 2px solid transparent; transition: var(--transition);
     display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
     color: rgba(255,255,255,0.7); text-shadow: 0 1px 3px rgba(0,0,0,0.8);
     position: relative; overflow: hidden;
 }
@@ -359,11 +372,22 @@ body::after {
     content: '✓'; position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.25);
 }
-.color-swatch.rainbow {
-    background: linear-gradient(135deg,
-        #ff4e4e 0%, #ff9a3c 17%, #ffe234 34%,
-        #5be05b 50%, #4da8da 67%, #9b59b6 84%, #ff4e4e 100%);
+.pattern-swatch {
+    width: auto; min-width: 64px; padding: 0 10px; height: 40px;
+    border: 2px solid rgba(255,255,255,0.12);
+    transition: background 0.4s ease, transform var(--transition),
+                border-color var(--transition), box-shadow var(--transition);
+}
+.pattern-swatch.selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px var(--accent), 0 0 14px 2px rgba(108,99,255,0.3), 0 4px 12px rgba(0,0,0,0.5);
+}
+.swatch-label {
+    font-size: 10px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9); pointer-events: none;
+    position: relative; z-index: 1;
 }
 
 #preview-box {
@@ -504,36 +528,61 @@ button { font-family: inherit; }
     <script>
 'use strict';
 
-// ── GTA color definitions ─────────────────────────────────────────────────────
-const COLORS = [
-    { code: '~r~',   label: 'Red',     css: '#e05555' },
-    { code: '~g~',   label: 'Green',   css: '#55cc55' },
-    { code: '~b~',   label: 'Blue',    css: '#5599ee' },
-    { code: '~y~',   label: 'Yellow',  css: '#eecc44' },
-    { code: '~o~',   label: 'Orange',  css: '#ee8833' },
-    { code: '~p~',   label: 'Purple',  css: '#bb44ee' },
-    { code: '~w~',   label: 'White',   css: '#e8e8f0' },
-    { code: '~RGB~', label: 'Rainbow', css: null       },
+const BASE_COLORS = [
+    { code: '~r~', label: 'Red',    css: '#e05555' },
+    { code: '~g~', label: 'Green',  css: '#55cc55' },
+    { code: '~b~', label: 'Blue',   css: '#5599ee' },
+    { code: '~y~', label: 'Yellow', css: '#eecc44' },
+    { code: '~o~', label: 'Orange', css: '#ee8833' },
+    { code: '~p~', label: 'Purple', css: '#bb44ee' },
+    { code: '~w~', label: 'White',  css: '#e8e8f0' },
 ];
-
-// ── State ─────────────────────────────────────────────────────────────────────
-let state = {
-    tags:          [],
-    slots:         5,
-    maxLen:        20,
-    editIndex:     null,
-    selectedColor: '~w~',
-    activeIndex:   null,
+const PATTERN_META = {
+    '~RGB~':       { label: 'Rainbow',   colors: ['#e05555','#eecc44','#55cc55','#5599ee','#bb44ee','#ee8833'] },
+    '~CHRISTMAS~': { label: 'Christmas', colors: ['#e05555','#55cc55'] },
+    '~AMERICA~':   { label: 'America',   colors: ['#e05555','#e8e8f0','#5599ee'] },
+    '~HALLOWEEN~': { label: 'Halloween', colors: ['#ee8833','#e8e8f0'] },
+    '~DEVIL~':     { label: 'Devil',     colors: ['#e05555','#888899','#444455'] },
 };
 
-// ── Simulated server data (pre-loaded for mockup) ─────────────────────────────
-const MOCK_TAGS = [
-    { text: 'VIP',     color: '~p~' },
-    { text: 'Legend',  color: '~RGB~' },
-];
-const MOCK_ACTIVE_INDEX = 1; // "VIP" is the active tag
+let state = {
+    tags: [], slots: 5, maxLen: 20,
+    allowedPatterns: ['~RGB~','~CHRISTMAS~','~AMERICA~','~HALLOWEEN~','~DEVIL~'],
+    editIndex: null, selectedColor: '~w~', activeIndex: null,
+};
 
-// ── DOM refs ──────────────────────────────────────────────────────────────────
+const patternAnimState = {};
+
+function startPatternAnimations() {
+    Object.values(patternAnimState).forEach(s => clearInterval(s.intervalId));
+    state.allowedPatterns.forEach(code => {
+        const meta = PATTERN_META[code]; if (!meta) return;
+        patternAnimState[code] = { idx: 0 };
+        patternAnimState[code].intervalId = setInterval(() => {
+            patternAnimState[code].idx = (patternAnimState[code].idx + 1) % meta.colors.length;
+            const sw = colorGrid.querySelector('[data-code="' + CSS.escape(code) + '"]');
+            if (sw) applyPatternSwatchStyle(sw, code);
+            if (state.selectedColor === code) updatePreview();
+        }, 500);
+    });
+}
+
+function applyPatternSwatchStyle(el, code) {
+    const meta = PATTERN_META[code]; if (!meta) return;
+    const idx = patternAnimState[code] ? patternAnimState[code].idx : 0;
+    const rotated = [...meta.colors.slice(idx), ...meta.colors.slice(0, idx)];
+    const pct = 100 / rotated.length;
+    const stops = rotated.map((c, i) => c + ' ' + (i*pct) + '%, ' + c + ' ' + ((i+1)*pct) + '%').join(', ');
+    el.style.background = 'linear-gradient(135deg, ' + stops + ')';
+}
+
+const MOCK_TAGS = [
+    { text: 'VIP',     color: '~p~'        },
+    { text: 'Legend',  color: '~RGB~'       },
+    { text: 'Xmas',    color: '~CHRISTMAS~' },
+];
+const MOCK_ACTIVE_INDEX = 1;
+
 const overlay       = document.getElementById('overlay');
 const toast         = document.getElementById('toast');
 const tagList       = document.getElementById('tag-list');
@@ -553,302 +602,175 @@ const btnClose      = document.getElementById('btn-close');
 const fakeTag       = document.getElementById('fake-tag');
 const fakeHudTag    = document.getElementById('fake-hud-tag');
 
-// ── Color swatches ────────────────────────────────────────────────────────────
 function buildColorGrid() {
     colorGrid.innerHTML = '';
-    COLORS.forEach(c => {
-        const sw = document.createElement('div');
-        sw.className = 'color-swatch' + (c.code === '~RGB~' ? ' rainbow' : '');
-        sw.dataset.code = c.code;
-        sw.title = c.label;
-        if (c.css) sw.style.background = c.css;
-        if (c.code === state.selectedColor) sw.classList.add('selected');
-        sw.addEventListener('click', () => selectColor(c.code));
-        colorGrid.appendChild(sw);
-    });
+    const bl = document.createElement('div');
+    bl.className = 'color-section-label'; bl.textContent = 'Base Colors';
+    colorGrid.appendChild(bl);
+    const br = document.createElement('div'); br.className = 'color-row';
+    BASE_COLORS.forEach(c => br.appendChild(makeSwatch(c.code, c.label, c.css, false)));
+    colorGrid.appendChild(br);
+    if (state.allowedPatterns.length > 0) {
+        const pl = document.createElement('div');
+        pl.className = 'color-section-label pattern-label'; pl.textContent = 'Color Patterns';
+        const badge = document.createElement('span');
+        badge.className = 'pattern-label-badge'; badge.textContent = '\u2736 Unlocked';
+        pl.appendChild(badge); colorGrid.appendChild(pl);
+        const pr = document.createElement('div'); pr.className = 'color-row';
+        state.allowedPatterns.forEach(code => {
+            const meta = PATTERN_META[code] || { label: code, colors: ['#e8e8f0'] };
+            pr.appendChild(makeSwatch(code, meta.label, null, true));
+        });
+        colorGrid.appendChild(pr);
+    }
+    document.querySelectorAll('.color-swatch').forEach(sw =>
+        sw.classList.toggle('selected', sw.dataset.code === state.selectedColor));
+}
+
+function makeSwatch(code, label, cssColor, isPattern) {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (isPattern ? ' pattern-swatch' : '');
+    sw.dataset.code = code; sw.title = label;
+    if (isPattern) {
+        applyPatternSwatchStyle(sw, code);
+        const lbl = document.createElement('span');
+        lbl.className = 'swatch-label'; lbl.textContent = label; sw.appendChild(lbl);
+    } else { sw.style.background = cssColor; }
+    sw.addEventListener('click', () => selectColor(code));
+    return sw;
 }
 
 function selectColor(code) {
     state.selectedColor = code;
     document.querySelectorAll('.color-swatch').forEach(sw =>
-        sw.classList.toggle('selected', sw.dataset.code === code)
-    );
+        sw.classList.toggle('selected', sw.dataset.code === code));
     updatePreview();
 }
 
-// ── Preview ───────────────────────────────────────────────────────────────────
-function colorToCss(code) {
-    const c = COLORS.find(x => x.code === code);
-    if (!c) return '#e8e8f0';
-    return c.css || 'transparent';
-}
-
-function applyColorStyle(el, code) {
-    if (code === '~RGB~') {
-        el.style.cssText = `
-            background: linear-gradient(90deg,
-                #ff4e4e, #ff9a3c, #ffe234, #55cc55, #4da8da, #bb44ee, #ff4e4e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 700;
-        `;
-    } else {
-        el.style.cssText = `color: ${colorToCss(code)}; font-weight: 700;`;
+function applyColorToEl(el, code) {
+    const base = BASE_COLORS.find(x => x.code === code);
+    if (base) {
+        el.style.cssText = 'color:' + base.css + ';font-weight:700;background:none;-webkit-text-fill-color:unset;';
+        return;
     }
+    const meta = PATTERN_META[code];
+    if (meta) {
+        const idx = patternAnimState[code] ? patternAnimState[code].idx : 0;
+        el.style.cssText = 'color:' + meta.colors[idx] + ';font-weight:700;background:none;-webkit-text-fill-color:unset;';
+        return;
+    }
+    el.style.cssText = 'color:#e8e8f0;font-weight:700;';
 }
 
 function updatePreview() {
     const text = inputText.value.trim() || 'Your Tag';
-    applyColorStyle(previewText, state.selectedColor);
+    applyColorToEl(previewText, state.selectedColor);
     previewText.textContent = text + ' ';
 }
 
-// ── Char counter ──────────────────────────────────────────────────────────────
 function updateCharCounter() {
-    const len = inputText.value.length;
-    const max = state.maxLen;
-    charCounter.textContent = `${len} / ${max}`;
+    const len = inputText.value.length, max = state.maxLen;
+    charCounter.textContent = len + ' / ' + max;
     charCounter.className = 'char-counter';
-    if (len >= max)            charCounter.classList.add('at-limit');
+    if (len >= max) charCounter.classList.add('at-limit');
     else if (len >= max * 0.8) charCounter.classList.add('near-limit');
 }
 
-// ── Tag list ──────────────────────────────────────────────────────────────────
-function renderTagList() {
-    slotUsed.textContent  = state.tags.length;
-    slotTotal.textContent = state.slots;
-
-    const atLimit = state.tags.length >= state.slots;
-    btnNewTag.disabled = atLimit;
-    btnNewTag.title = atLimit ? 'All slots are used' : 'Create a new custom tag';
-
-    tagList.innerHTML = '';
-    if (state.tags.length === 0) {
-        tagListEmpty.classList.remove('hidden');
-        return;
+function getColorDotStyle(code) {
+    const base = BASE_COLORS.find(x => x.code === code);
+    if (base) return 'background:' + base.css;
+    const meta = PATTERN_META[code];
+    if (meta) {
+        const stops = meta.colors.map((c, i) => c + ' ' + (i * (100 / meta.colors.length)) + '%').join(',');
+        return 'background:linear-gradient(135deg,' + stops + ')';
     }
-    tagListEmpty.classList.add('hidden');
+    return 'background:#e8e8f0';
+}
 
+function renderTagList() {
+    slotUsed.textContent = state.tags.length; slotTotal.textContent = state.slots;
+    btnNewTag.disabled = state.tags.length >= state.slots;
+    tagList.innerHTML = '';
+    if (state.tags.length === 0) { tagListEmpty.classList.remove('hidden'); updateFakeHud(); return; }
+    tagListEmpty.classList.add('hidden');
     state.tags.forEach((tag, i) => {
         const idx = i + 1;
         const card = document.createElement('div');
         card.className = 'tag-card' + (state.activeIndex === idx ? ' active-tag' : '');
-
-        const dot = document.createElement('div');
-        dot.className = 'tag-color-dot';
-        if (tag.color === '~RGB~') {
-            dot.style.background = 'linear-gradient(135deg, #ff4e4e, #ffe234, #55cc55, #4da8da, #bb44ee)';
-        } else {
-            const c = COLORS.find(x => x.code === tag.color);
-            dot.style.background = c ? c.css : '#e8e8f0';
-        }
-
-        const info = document.createElement('div');
-        info.className = 'tag-info';
-
-        const label = document.createElement('div');
-        label.className = 'tag-info-label';
-        label.textContent = tag.text;
-
-        const sub = document.createElement('div');
-        const c = COLORS.find(x => x.code === tag.color);
-        sub.className = 'tag-info-sub';
-        sub.textContent = (c ? c.label : tag.color) + ' · Slot ' + idx;
-
-        info.appendChild(label);
-        info.appendChild(sub);
-
-        if (state.activeIndex === idx) {
-            const badge = document.createElement('span');
-            badge.className = 'tag-active-badge';
-            badge.textContent = 'Active';
-            info.appendChild(badge);
-        }
-
-        const actions = document.createElement('div');
-        actions.className = 'tag-actions';
-
-        if (state.activeIndex !== idx) {
-            const btnAct = document.createElement('button');
-            btnAct.className = 'btn-activate';
-            btnAct.textContent = '▶ Activate';
-            btnAct.addEventListener('click', () => activateTag(idx));
-            actions.appendChild(btnAct);
-        }
-
-        const btnEdit = document.createElement('button');
-        btnEdit.className = 'btn-edit';
-        btnEdit.textContent = '✎ Edit';
-        btnEdit.addEventListener('click', () => openEditForm(idx));
-        actions.appendChild(btnEdit);
-
-        const btnDel = document.createElement('button');
-        btnDel.className = 'btn-delete';
-        btnDel.textContent = '✕';
-        btnDel.title = 'Delete this tag';
-        btnDel.addEventListener('click', () => deleteTag(idx));
-        actions.appendChild(btnDel);
-
-        card.appendChild(dot);
-        card.appendChild(info);
-        card.appendChild(actions);
+        const dot = document.createElement('div'); dot.className = 'tag-color-dot'; dot.style.cssText = getColorDotStyle(tag.color);
+        const info = document.createElement('div'); info.className = 'tag-info';
+        const lbl = document.createElement('div'); lbl.className = 'tag-info-label'; lbl.textContent = tag.text;
+        const colorMeta = BASE_COLORS.find(x => x.code === tag.color) || (PATTERN_META[tag.color] ? {label: PATTERN_META[tag.color].label} : {label: tag.color});
+        const sub = document.createElement('div'); sub.className = 'tag-info-sub'; sub.textContent = colorMeta.label + ' \u00b7 Slot ' + idx;
+        info.appendChild(lbl); info.appendChild(sub);
+        if (state.activeIndex === idx) { const b = document.createElement('span'); b.className = 'tag-active-badge'; b.textContent = 'Active'; info.appendChild(b); }
+        const actions = document.createElement('div'); actions.className = 'tag-actions';
+        if (state.activeIndex !== idx) { const ba = document.createElement('button'); ba.className = 'btn-activate'; ba.textContent = '\u25b6 Activate'; ba.addEventListener('click', () => activateTag(idx)); actions.appendChild(ba); }
+        const be = document.createElement('button'); be.className = 'btn-edit'; be.textContent = '\u270e Edit'; be.addEventListener('click', () => openEditForm(idx)); actions.appendChild(be);
+        const bd = document.createElement('button'); bd.className = 'btn-delete'; bd.textContent = '\u2715'; bd.addEventListener('click', () => deleteTag(idx)); actions.appendChild(bd);
+        card.appendChild(dot); card.appendChild(info); card.appendChild(actions);
         tagList.appendChild(card);
     });
-
     updateFakeHud();
 }
 
-// ── Fake in-game HUD sync ─────────────────────────────────────────────────────
 function updateFakeHud() {
     if (state.activeIndex !== null) {
         const tag = state.tags[state.activeIndex - 1];
-        if (tag) {
-            applyColorStyle(fakeTag, tag.color);
-            fakeTag.textContent = tag.text + ' ';
-            applyColorStyle(fakeHudTag, tag.color);
-            fakeHudTag.textContent = tag.text;
-            return;
-        }
+        if (tag) { applyColorToEl(fakeTag, tag.color); fakeTag.textContent = tag.text + ' '; applyColorToEl(fakeHudTag, tag.color); fakeHudTag.textContent = tag.text; return; }
     }
-    fakeTag.style.cssText = 'color: #55cc55; font-weight: 700;';
-    fakeTag.textContent = 'Member ';
-    fakeHudTag.style.cssText = 'color: #55cc55;';
-    fakeHudTag.textContent = 'Member';
+    fakeTag.style.cssText = 'color:#55cc55;font-weight:700;'; fakeTag.textContent = 'Member ';
+    fakeHudTag.style.cssText = 'color:#55cc55;'; fakeHudTag.textContent = 'Member';
 }
 
-// ── Form ──────────────────────────────────────────────────────────────────────
 function openNewForm() {
-    state.editIndex = null;
-    formTitle.textContent = 'New Tag';
-    inputText.value = '';
-    selectColor('~w~');
-    updateCharCounter();
-    updatePreview();
+    state.editIndex = null; formTitle.textContent = 'New Tag'; inputText.value = '';
+    selectColor('~w~'); updateCharCounter(); updatePreview();
     inputText.setAttribute('maxlength', state.maxLen);
-    formSection.classList.remove('hidden');
-    inputText.focus();
+    formSection.classList.remove('hidden'); inputText.focus();
 }
-
 function openEditForm(idx) {
-    const tag = state.tags[idx - 1];
-    if (!tag) return;
-    state.editIndex = idx;
-    formTitle.textContent = 'Edit Tag · Slot ' + idx;
-    inputText.value = tag.text;
-    inputText.setAttribute('maxlength', state.maxLen);
-    selectColor(tag.color);
-    updateCharCounter();
-    updatePreview();
-    formSection.classList.remove('hidden');
-    inputText.focus();
+    const tag = state.tags[idx - 1]; if (!tag) return;
+    state.editIndex = idx; formTitle.textContent = 'Edit Tag \u00b7 Slot ' + idx;
+    inputText.value = tag.text; inputText.setAttribute('maxlength', state.maxLen);
+    selectColor(tag.color); updateCharCounter(); updatePreview();
+    formSection.classList.remove('hidden'); inputText.focus();
 }
+function closeForm() { formSection.classList.add('hidden'); state.editIndex = null; }
 
-function closeForm() {
-    formSection.classList.add('hidden');
-    state.editIndex = null;
-}
-
-// ── Tag actions (local simulation) ────────────────────────────────────────────
 function saveTag() {
     const text = inputText.value.trim();
     if (!text) { showToast('Tag text cannot be empty.', 'error'); return; }
     if (text.length > state.maxLen) { showToast('Tag text is too long.', 'error'); return; }
-
     const newTag = { text, color: state.selectedColor };
-
-    if (state.editIndex !== null) {
-        state.tags[state.editIndex - 1] = newTag;
-    } else {
-        if (state.tags.length >= state.slots) {
-            showToast('You have reached your slot limit (' + state.slots + ').', 'error');
-            return;
-        }
-        state.tags.push(newTag);
-    }
-
-    renderTagList();
-    closeForm();
-    showToast('Tag saved successfully.', 'success');
+    if (state.editIndex !== null) { state.tags[state.editIndex - 1] = newTag; }
+    else { if (state.tags.length >= state.slots) { showToast('Slot limit reached (' + state.slots + ').', 'error'); return; } state.tags.push(newTag); }
+    renderTagList(); closeForm(); showToast('Tag saved successfully.', 'success');
 }
-
 function deleteTag(idx) {
     if (state.activeIndex === idx) state.activeIndex = null;
     else if (state.activeIndex > idx) state.activeIndex--;
-    state.tags.splice(idx - 1, 1);
-    renderTagList();
-    closeForm();
-    showToast('Tag deleted.', 'success');
+    state.tags.splice(idx - 1, 1); renderTagList(); closeForm(); showToast('Tag deleted.', 'success');
 }
+function activateTag(idx) { state.activeIndex = idx; renderTagList(); showToast('"' + state.tags[idx-1].text + '" is now active!', 'success'); }
 
-function activateTag(idx) {
-    state.activeIndex = idx;
-    const tag = state.tags[idx - 1];
-    renderTagList();
-    showToast('Tag "' + tag.text + '" is now active!', 'success');
-}
-
-// ── Toast ─────────────────────────────────────────────────────────────────────
 let toastTimer = null;
-function showToast(msg, type = 'error') {
-    clearTimeout(toastTimer);
-    toast.textContent = msg;
-    toast.className = type;
-    toastTimer = setTimeout(hideToast, 3500);
-}
-function hideToast() {
-    clearTimeout(toastTimer);
-    toast.className = 'hidden';
-}
+function showToast(msg, type) { type = type || 'error'; clearTimeout(toastTimer); toast.textContent = msg; toast.className = type; toastTimer = setTimeout(hideToast, 3500); }
+function hideToast() { clearTimeout(toastTimer); toast.className = 'hidden'; }
+function togglePanel() { const h = overlay.classList.toggle('hidden'); document.getElementById('toggle-btn').textContent = h ? 'Show Panel' : 'Hide Panel'; }
 
-// ── Panel toggle (mockup only) ────────────────────────────────────────────────
-function togglePanel() {
-    const isHidden = overlay.classList.toggle('hidden');
-    document.getElementById('toggle-btn').textContent = isHidden ? 'Show Panel' : 'Hide Panel';
-}
-
-// ── Wire events ───────────────────────────────────────────────────────────────
-btnClose.addEventListener('click', () => {
-    overlay.classList.add('hidden');
-    document.getElementById('toggle-btn').textContent = 'Show Panel';
-});
-
-btnNewTag.addEventListener('click', () => {
-    if (btnNewTag.disabled) return;
-    if (!formSection.classList.contains('hidden') && state.editIndex === null) {
-        closeForm();
-    } else {
-        openNewForm();
-    }
-});
-
+btnClose.addEventListener('click', function() { overlay.classList.add('hidden'); document.getElementById('toggle-btn').textContent = 'Show Panel'; });
+btnNewTag.addEventListener('click', function() { if (btnNewTag.disabled) return; (!formSection.classList.contains('hidden') && state.editIndex === null) ? closeForm() : openNewForm(); });
 btnFormSave.addEventListener('click', saveTag);
 btnFormCancel.addEventListener('click', closeForm);
+inputText.addEventListener('input', function() { updateCharCounter(); updatePreview(); });
+inputText.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveTag(); if (e.key === 'Escape') closeForm(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && !overlay.classList.contains('hidden')) { formSection.classList.contains('hidden') ? togglePanel() : closeForm(); } });
 
-inputText.addEventListener('input', () => {
-    updateCharCounter();
-    updatePreview();
-});
-inputText.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter')  saveTag();
-    if (e.key === 'Escape') closeForm();
-});
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
-        if (!formSection.classList.contains('hidden')) {
-            closeForm();
-        } else {
-            togglePanel();
-        }
-    }
-});
-
-// ── Boot with sample data ─────────────────────────────────────────────────────
-state.tags        = MOCK_TAGS.map(t => ({ ...t }));
+state.tags = MOCK_TAGS.map(function(t) { return Object.assign({}, t); });
 state.activeIndex = MOCK_ACTIVE_INDEX;
-buildColorGrid();
-renderTagList();
+buildColorGrid(); startPatternAnimations(); renderTagList();
+
     </script>
 
 </body>
