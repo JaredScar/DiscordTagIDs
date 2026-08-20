@@ -23,4 +23,36 @@ Config = {
 		y = .50,
 		Scale = .55
 	},
+
+	-- ─────────────────────────────────────────────────────────────────
+	-- Custom Player Headtags
+	-- ─────────────────────────────────────────────────────────────────
+	CustomTags = {
+		Enabled = false, -- Set to true to enable the custom headtag system
+
+		-- "flatfile" stores tags in custom_tags.json inside the resource folder.
+		-- "database" requires oxmysql to be installed and running.
+		Storage = "flatfile",
+
+		-- Maximum characters a player may use for a custom tag label
+		MaxTextLength = 20,
+
+		BadWordFilter = {
+			Enabled = false,
+			-- Words are matched case-insensitively anywhere in the tag text
+			Words = {"example_bad_word", "another_bad_word"},
+		},
+
+		-- Players receive the HIGHEST matching slot count from this list.
+		-- type "ace"     → FiveM ACE permission checked with IsPlayerAceAllowed
+		-- type "discord" → Discord role ID (number) checked via Badger_Discord_API
+		-- Add/remove entries as needed; the list is evaluated top-to-bottom and
+		-- the highest slots value the player qualifies for is used.
+		SlotPermissions = {
+			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.5", slots = 5},
+			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.3", slots = 3},
+			{type = "ace",     perm   = "DiscordTagIDs.CustomTags.1", slots = 1},
+			-- {type = "discord", roleId = 123456789012345678,           slots = 3},
+		},
+	},
 }

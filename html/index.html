@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Custom Headtags</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="overlay" class="hidden">
+        <div id="panel">
+
+            <!-- Header -->
+            <div id="panel-header">
+                <div id="header-left">
+                    <span id="header-icon">🏷</span>
+                    <div>
+                        <div id="header-title">Custom Headtags</div>
+                        <div id="header-sub">Design your own tag shown above your head</div>
+                    </div>
+                </div>
+                <div id="header-right">
+                    <div id="slot-badge">
+                        <span id="slot-used">0</span>/<span id="slot-total">0</span>
+                        <span id="slot-label">slots</span>
+                    </div>
+                    <button id="btn-close" title="Close (ESC)">✕</button>
+                </div>
+            </div>
+
+            <!-- Error / Info toast -->
+            <div id="toast" class="hidden"></div>
+
+            <!-- Tag list -->
+            <div id="tag-list-section">
+                <div id="tag-list-empty" class="hidden">
+                    <div id="empty-icon">✦</div>
+                    <div>You have no custom tags yet.</div>
+                    <div id="empty-sub">Click <strong>New Tag</strong> below to create one.</div>
+                </div>
+                <div id="tag-list"></div>
+            </div>
+
+            <!-- Form: create / edit -->
+            <div id="form-section" class="hidden">
+                <div id="form-title">New Tag</div>
+
+                <label class="form-label">Tag Text
+                    <span id="char-counter" class="char-counter">0 / 20</span>
+                </label>
+                <input id="input-text" type="text" maxlength="20"
+                       placeholder="e.g. VIP, Legend, Founder…" autocomplete="off" />
+
+                <label class="form-label">Color</label>
+                <div id="color-grid"></div>
+
+                <label class="form-label">Preview</label>
+                <div id="preview-box">
+                    <span id="preview-text">Your Tag Here</span>
+                    <span id="preview-name" class="preview-name"> PlayerName [1]</span>
+                </div>
+
+                <div id="form-actions">
+                    <button id="btn-form-cancel" class="btn-secondary">Cancel</button>
+                    <button id="btn-form-save"   class="btn-primary">Save Tag</button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div id="panel-footer">
+                <button id="btn-new-tag" class="btn-accent">+ New Tag</button>
+                <div id="footer-hint">Use <kbd>/customtag</kbd> to open · <kbd>ESC</kbd> to close</div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

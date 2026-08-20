@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DiscordTagIDs – Custom Headtags UI Mockup</title>
+    <style>
+/* ── Reset & base ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg-overlay:   rgba(0, 0, 0, 0.55);
+    --bg-panel:     #141418;
+    --bg-panel2:    #1c1c22;
+    --bg-panel3:    #222229;
+    --bg-input:     #0e0e12;
+    --border:       rgba(255,255,255,0.07);
+    --border-focus: rgba(120,120,255,0.55);
+    --accent:       #6c63ff;
+    --accent-hover: #7d75ff;
+    --danger:       #e05555;
+    --danger-hover: #f06666;
+    --success:      #4caf6e;
+    --text-primary: #e8e8f0;
+    --text-muted:   #888899;
+    --text-dim:     #55556a;
+    --radius:       10px;
+    --radius-sm:    6px;
+    --transition:   0.18s ease;
+}
+
+/* ── Fake GTA background ────────────────────────────────────────────────── */
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    color: var(--text-primary);
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background:
+        /* subtle grain overlay */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+        /* city night sky gradient */
+        linear-gradient(
+            180deg,
+            #0a0a14 0%,
+            #0d0d1a 30%,
+            #111120 55%,
+            #0e1018 75%,
+            #080c10 100%
+        );
+}
+
+/* Fake city silhouette */
+body::before {
+    content: '';
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 38%;
+    background:
+        /* building shapes via repeating linear gradients */
+        linear-gradient(to bottom, transparent 0%, #05050a 100%),
+        repeating-linear-gradient(
+            90deg,
+            transparent 0px, transparent 28px,
+            #090910 28px, #090910 55px,
+            transparent 55px, transparent 60px,
+            #0a0a12 60px, #0a0a12 90px,
+            transparent 90px, transparent 95px,
+            #080810 95px, #080810 115px,
+            transparent 115px, transparent 140px,
+            #0b0b14 140px, #0b0b14 175px,
+            transparent 175px, transparent 200px
+        );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Tiny ambient lights simulating distant city glow */
+body::after {
+    content: '';
+    position: fixed;
+    bottom: 28%; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg,
+        transparent 5%, rgba(255,180,60,0.06) 15%, transparent 25%,
+        rgba(120,160,255,0.05) 40%, transparent 55%,
+        rgba(255,100,60,0.04) 70%, transparent 85%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Mockup label ────────────────────────────────────────────────────────── */
+#mockup-label {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(108,99,255,0.18);
+    border: 1px solid rgba(108,99,255,0.35);
+    border-radius: 20px;
+    padding: 5px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #9d97ff;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+/* ── HUD elements (fake in-game) ─────────────────────────────────────────── */
+#fake-hud {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 12px;
+    color: rgba(200,180,255,0.5);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    z-index: 0;
+    pointer-events: none;
+}
+#fake-headtag-display {
+    position: fixed;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+    z-index: 0;
+}
+.fake-tag-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: #5be05b;
+    text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.7);
+    letter-spacing: 0.4px;
+}
+.fake-player-name {
+    font-size: 12px;
+    color: #ccccee;
+    text-shadow: 0 0 6px rgba(0,0,0,0.9);
+}
+.fake-player-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #6c63ff;
+    margin: 4px auto;
+    box-shadow: 0 0 8px 2px rgba(108,99,255,0.4);
+}
+
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+#overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+    backdrop-filter: blur(3px);
+    z-index: 5;
+    animation: fadeIn 0.2s ease;
+}
+#overlay.hidden { display: none; }
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Panel ───────────────────────────────────────────────────────────────── */
+#panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 480px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
+    animation: slideUp 0.22s cubic-bezier(0.34,1.3,0.64,1);
+}
+@keyframes slideUp {
+    from { transform: translateY(16px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+#panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-panel2);
+    flex-shrink: 0;
+}
+#header-left { display: flex; align-items: center; gap: 12px; }
+#header-icon {
+    font-size: 24px; line-height: 1;
+    filter: drop-shadow(0 0 6px rgba(108,99,255,0.5));
+}
+#header-title { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+#header-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+#header-right { display: flex; align-items: center; gap: 12px; }
+
+#slot-badge {
+    background: var(--bg-panel3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex; align-items: center; gap: 4px;
+}
+#slot-used  { color: var(--accent); font-weight: 700; }
+#slot-label { color: var(--text-dim); }
+
+#btn-close {
+    background: none; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-muted);
+    cursor: pointer; width: 32px; height: 32px; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: var(--transition);
+}
+#btn-close:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+#toast {
+    margin: 10px 20px 0;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500;
+    flex-shrink: 0;
+    animation: toastIn 0.18s ease;
+}
+#toast.hidden { display: none; }
+#toast.error   { background: rgba(224,85,85,0.15);  border: 1px solid rgba(224,85,85,0.4);  color: #f08080; }
+#toast.success { background: rgba(76,175,110,0.15); border: 1px solid rgba(76,175,110,0.4); color: #7ddb9d; }
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Tag list ────────────────────────────────────────────────────────────── */
+#tag-list-section {
+    flex: 1; overflow-y: auto;
+    padding: 14px 20px; min-height: 80px;
+}
+#tag-list-section::-webkit-scrollbar { width: 5px; }
+#tag-list-section::-webkit-scrollbar-track { background: transparent; }
+#tag-list-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+#tag-list-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 6px;
+    padding: 30px 0; color: var(--text-muted);
+    font-size: 13px; text-align: center;
+}
+#tag-list-empty.hidden { display: none; }
+#empty-icon { font-size: 32px; margin-bottom: 4px; opacity: 0.3; color: var(--accent); }
+#empty-sub { font-size: 12px; color: var(--text-dim); }
+
+.tag-card {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-panel2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    margin-bottom: 8px; transition: var(--transition);
+    position: relative; overflow: hidden;
+}
+.tag-card:hover { border-color: rgba(255,255,255,0.13); background: var(--bg-panel3); }
+.tag-card.active-tag {
+    border-color: rgba(108,99,255,0.45);
+    background: rgba(108,99,255,0.08);
+}
+.tag-card.active-tag::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--accent); border-radius: 3px 0 0 3px;
+}
+.tag-color-dot {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.15);
+}
+.tag-info { flex: 1; min-width: 0; }
+.tag-info-label {
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tag-info-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.tag-active-badge {
+    font-size: 10px; font-weight: 700; color: var(--accent);
+    background: rgba(108,99,255,0.18); border: 1px solid rgba(108,99,255,0.35);
+    border-radius: 4px; padding: 2px 7px; letter-spacing: 0.4px;
+    text-transform: uppercase; margin-left: auto; flex-shrink: 0;
+}
+.tag-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.tag-actions button {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg-panel3); color: var(--text-muted);
+    cursor: pointer; font-size: 12px; padding: 5px 10px;
+    transition: var(--transition); white-space: nowrap; font-family: inherit;
+}
+.tag-actions .btn-activate:hover { background: var(--accent);  border-color: var(--accent); color: #fff; }
+.tag-actions .btn-edit:hover     { background: #3a6faa;        border-color: #3a6faa;       color: #fff; }
+.tag-actions .btn-delete:hover   { background: var(--danger);  border-color: var(--danger); color: #fff; }
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+#form-section {
+    border-top: 1px solid var(--border); background: var(--bg-panel2);
+    padding: 16px 20px 14px; flex-shrink: 0; animation: fadeIn 0.15s ease;
+}
+#form-section.hidden { display: none; }
+#form-title {
+    font-size: 13px; font-weight: 700; color: var(--text-muted);
+    letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 12px;
+}
+.form-label {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    margin-bottom: 6px; margin-top: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.form-label:first-of-type { margin-top: 0; }
+.char-counter { font-weight: 400; color: var(--text-dim); font-size: 11px; text-transform: none; letter-spacing: 0; }
+.char-counter.near-limit { color: #e0a850; }
+.char-counter.at-limit   { color: var(--danger); }
+
+#input-text {
+    width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-primary);
+    font-size: 14px; padding: 9px 12px; outline: none;
+    transition: var(--transition); font-family: inherit;
+}
+#input-text:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(108,99,255,0.12); }
+#input-text::placeholder { color: var(--text-dim); }
+
+#color-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.color-swatch {
+    width: 40px; height: 40px; border-radius: var(--radius-sm);
+    cursor: pointer; border: 2px solid transparent; transition: var(--transition);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    color: rgba(255,255,255,0.7); text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    position: relative; overflow: hidden;
+}
+.color-swatch:hover { transform: scale(1.1); border-color: rgba(255,255,255,0.4); }
+.color-swatch.selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px var(--accent), 0 4px 12px rgba(0,0,0,0.5);
+    transform: scale(1.08);
+}
+.color-swatch.selected::after {
+    content: '✓'; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+.color-swatch.rainbow {
+    background: linear-gradient(135deg,
+        #ff4e4e 0%, #ff9a3c 17%, #ffe234 34%,
+        #5be05b 50%, #4da8da 67%, #9b59b6 84%, #ff4e4e 100%);
+}
+
+#preview-box {
+    background: rgba(0,0,0,0.45); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 16px;
+    font-size: 13px; font-weight: 600; text-align: center;
+    letter-spacing: 0.3px; min-height: 38px;
+    display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap;
+}
+.preview-name { color: #aaaacc; font-weight: 400; }
+#form-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+button { font-family: inherit; }
+.btn-primary {
+    flex: 1; background: var(--accent); border: 1px solid var(--accent);
+    border-radius: var(--radius-sm); color: #fff; cursor: pointer;
+    font-size: 13px; font-weight: 600; padding: 9px 18px; transition: var(--transition);
+}
+.btn-primary:hover  { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-secondary {
+    background: var(--bg-panel3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-muted); cursor: pointer;
+    font-size: 13px; padding: 9px 14px; transition: var(--transition);
+}
+.btn-secondary:hover { background: #2a2a35; color: var(--text-primary); }
+.btn-accent {
+    background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.35);
+    border-radius: var(--radius-sm); color: var(--accent); cursor: pointer;
+    font-size: 13px; font-weight: 600; padding: 8px 16px; transition: var(--transition);
+}
+.btn-accent:hover { background: rgba(108,99,255,0.22); }
+.btn-accent:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+#panel-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    background: var(--bg-panel2); flex-shrink: 0;
+}
+#footer-hint { font-size: 11px; color: var(--text-dim); }
+#footer-hint kbd {
+    background: var(--bg-panel3); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; font-size: 10px;
+    font-family: monospace; color: var(--text-muted);
+}
+
+/* ── Toggle button (mockup only) ─────────────────────────────────────────── */
+#toggle-btn {
+    position: fixed; bottom: 20px; right: 20px;
+    background: rgba(108,99,255,0.9); border: none;
+    border-radius: 8px; color: #fff; cursor: pointer;
+    font-size: 12px; font-weight: 600; padding: 10px 18px;
+    z-index: 20; transition: var(--transition);
+    box-shadow: 0 4px 16px rgba(108,99,255,0.4);
+    letter-spacing: 0.3px;
+}
+#toggle-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+
+    <!-- Fake GTA background elements -->
+    <div id="mockup-label">UI Mockup — Browser Preview</div>
+
+    <div id="fake-headtag-display">
+        <div class="fake-tag-text" id="fake-tag">VIP </div>
+        <div class="fake-player-name">YourName [1]</div>
+        <div class="fake-player-dot"></div>
+    </div>
+
+    <div id="fake-hud">~p~Active Headtag: <span id="fake-hud-tag" style="color:#bb44ee">VIP</span></div>
+
+    <!-- Main panel -->
+    <div id="overlay">
+        <div id="panel">
+
+            <div id="panel-header">
+                <div id="header-left">
+                    <span id="header-icon">🏷</span>
+                    <div>
+                        <div id="header-title">Custom Headtags</div>
+                        <div id="header-sub">Design your own tag shown above your head</div>
+                    </div>
+                </div>
+                <div id="header-right">
+                    <div id="slot-badge">
+                        <span id="slot-used">0</span>/<span id="slot-total">0</span>
+                        <span id="slot-label">slots</span>
+                    </div>
+                    <button id="btn-close" title="Close (ESC)">✕</button>
+                </div>
+            </div>
+
+            <div id="toast" class="hidden"></div>
+
+            <div id="tag-list-section">
+                <div id="tag-list-empty" class="hidden">
+                    <div id="empty-icon">✦</div>
+                    <div>You have no custom tags yet.</div>
+                    <div id="empty-sub">Click <strong>New Tag</strong> below to create one.</div>
+                </div>
+                <div id="tag-list"></div>
+            </div>
+
+            <div id="form-section" class="hidden">
+                <div id="form-title">New Tag</div>
+                <label class="form-label">Tag Text
+                    <span id="char-counter" class="char-counter">0 / 20</span>
+                </label>
+                <input id="input-text" type="text" maxlength="20"
+                       placeholder="e.g. VIP, Legend, Founder…" autocomplete="off" />
+                <label class="form-label">Color</label>
+                <div id="color-grid"></div>
+                <label class="form-label">Preview</label>
+                <div id="preview-box">
+                    <span id="preview-text">Your Tag Here</span>
+                    <span id="preview-name" class="preview-name"> PlayerName [1]</span>
+                </div>
+                <div id="form-actions">
+                    <button id="btn-form-cancel" class="btn-secondary">Cancel</button>
+                    <button id="btn-form-save"   class="btn-primary">Save Tag</button>
+                </div>
+            </div>
+
+            <div id="panel-footer">
+                <button id="btn-new-tag" class="btn-accent">+ New Tag</button>
+                <div id="footer-hint">Use <kbd>/customtag</kbd> to open · <kbd>ESC</kbd> to close</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Mockup toggle -->
+    <button id="toggle-btn" onclick="togglePanel()">Hide Panel</button>
+
+    <script>
+'use strict';
+
+// ── GTA color definitions ─────────────────────────────────────────────────────
+const COLORS = [
+    { code: '~r~',   label: 'Red',     css: '#e05555' },
+    { code: '~g~',   label: 'Green',   css: '#55cc55' },
+    { code: '~b~',   label: 'Blue',    css: '#5599ee' },
+    { code: '~y~',   label: 'Yellow',  css: '#eecc44' },
+    { code: '~o~',   label: 'Orange',  css: '#ee8833' },
+    { code: '~p~',   label: 'Purple',  css: '#bb44ee' },
+    { code: '~w~',   label: 'White',   css: '#e8e8f0' },
+    { code: '~RGB~', label: 'Rainbow', css: null       },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = {
+    tags:          [],
+    slots:         5,
+    maxLen:        20,
+    editIndex:     null,
+    selectedColor: '~w~',
+    activeIndex:   null,
+};
+
+// ── Simulated server data (pre-loaded for mockup) ─────────────────────────────
+const MOCK_TAGS = [
+    { text: 'VIP',     color: '~p~' },
+    { text: 'Legend',  color: '~RGB~' },
+];
+const MOCK_ACTIVE_INDEX = 1; // "VIP" is the active tag
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const overlay       = document.getElementById('overlay');
+const toast         = document.getElementById('toast');
+const tagList       = document.getElementById('tag-list');
+const tagListEmpty  = document.getElementById('tag-list-empty');
+const slotUsed      = document.getElementById('slot-used');
+const slotTotal     = document.getElementById('slot-total');
+const formSection   = document.getElementById('form-section');
+const formTitle     = document.getElementById('form-title');
+const inputText     = document.getElementById('input-text');
+const charCounter   = document.getElementById('char-counter');
+const colorGrid     = document.getElementById('color-grid');
+const previewText   = document.getElementById('preview-text');
+const btnNewTag     = document.getElementById('btn-new-tag');
+const btnFormSave   = document.getElementById('btn-form-save');
+const btnFormCancel = document.getElementById('btn-form-cancel');
+const btnClose      = document.getElementById('btn-close');
+const fakeTag       = document.getElementById('fake-tag');
+const fakeHudTag    = document.getElementById('fake-hud-tag');
+
+// ── Color swatches ────────────────────────────────────────────────────────────
+function buildColorGrid() {
+    colorGrid.innerHTML = '';
+    COLORS.forEach(c => {
+        const sw = document.createElement('div');
+        sw.className = 'color-swatch' + (c.code === '~RGB~' ? ' rainbow' : '');
+        sw.dataset.code = c.code;
+        sw.title = c.label;
+        if (c.css) sw.style.background = c.css;
+        if (c.code === state.selectedColor) sw.classList.add('selected');
+        sw.addEventListener('click', () => selectColor(c.code));
+        colorGrid.appendChild(sw);
+    });
+}
+
+function selectColor(code) {
+    state.selectedColor = code;
+    document.querySelectorAll('.color-swatch').forEach(sw =>
+        sw.classList.toggle('selected', sw.dataset.code === code)
+    );
+    updatePreview();
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+function colorToCss(code) {
+    const c = COLORS.find(x => x.code === code);
+    if (!c) return '#e8e8f0';
+    return c.css || 'transparent';
+}
+
+function applyColorStyle(el, code) {
+    if (code === '~RGB~') {
+        el.style.cssText = `
+            background: linear-gradient(90deg,
+                #ff4e4e, #ff9a3c, #ffe234, #55cc55, #4da8da, #bb44ee, #ff4e4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        `;
+    } else {
+        el.style.cssText = `color: ${colorToCss(code)}; font-weight: 700;`;
+    }
+}
+
+function updatePreview() {
+    const text = inputText.value.trim() || 'Your Tag';
+    applyColorStyle(previewText, state.selectedColor);
+    previewText.textContent = text + ' ';
+}
+
+// ── Char counter ──────────────────────────────────────────────────────────────
+function updateCharCounter() {
+    const len = inputText.value.length;
+    const max = state.maxLen;
+    charCounter.textContent = `${len} / ${max}`;
+    charCounter.className = 'char-counter';
+    if (len >= max)            charCounter.classList.add('at-limit');
+    else if (len >= max * 0.8) charCounter.classList.add('near-limit');
+}
+
+// ── Tag list ──────────────────────────────────────────────────────────────────
+function renderTagList() {
+    slotUsed.textContent  = state.tags.length;
+    slotTotal.textContent = state.slots;
+
+    const atLimit = state.tags.length >= state.slots;
+    btnNewTag.disabled = atLimit;
+    btnNewTag.title = atLimit ? 'All slots are used' : 'Create a new custom tag';
+
+    tagList.innerHTML = '';
+    if (state.tags.length === 0) {
+        tagListEmpty.classList.remove('hidden');
+        return;
+    }
+    tagListEmpty.classList.add('hidden');
+
+    state.tags.forEach((tag, i) => {
+        const idx = i + 1;
+        const card = document.createElement('div');
+        card.className = 'tag-card' + (state.activeIndex === idx ? ' active-tag' : '');
+
+        const dot = document.createElement('div');
+        dot.className = 'tag-color-dot';
+        if (tag.color === '~RGB~') {
+            dot.style.background = 'linear-gradient(135deg, #ff4e4e, #ffe234, #55cc55, #4da8da, #bb44ee)';
+        } else {
+            const c = COLORS.find(x => x.code === tag.color);
+            dot.style.background = c ? c.css : '#e8e8f0';
+        }
+
+        const info = document.createElement('div');
+        info.className = 'tag-info';
+
+        const label = document.createElement('div');
+        label.className = 'tag-info-label';
+        label.textContent = tag.text;
+
+        const sub = document.createElement('div');
+        const c = COLORS.find(x => x.code === tag.color);
+        sub.className = 'tag-info-sub';
+        sub.textContent = (c ? c.label : tag.color) + ' · Slot ' + idx;
+
+        info.appendChild(label);
+        info.appendChild(sub);
+
+        if (state.activeIndex === idx) {
+            const badge = document.createElement('span');
+            badge.className = 'tag-active-badge';
+            badge.textContent = 'Active';
+            info.appendChild(badge);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'tag-actions';
+
+        if (state.activeIndex !== idx) {
+            const btnAct = document.createElement('button');
+            btnAct.className = 'btn-activate';
+            btnAct.textContent = '▶ Activate';
+            btnAct.addEventListener('click', () => activateTag(idx));
+            actions.appendChild(btnAct);
+        }
+
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'btn-edit';
+        btnEdit.textContent = '✎ Edit';
+        btnEdit.addEventListener('click', () => openEditForm(idx));
+        actions.appendChild(btnEdit);
+
+        const btnDel = document.createElement('button');
+        btnDel.className = 'btn-delete';
+        btnDel.textContent = '✕';
+        btnDel.title = 'Delete this tag';
+        btnDel.addEventListener('click', () => deleteTag(idx));
+        actions.appendChild(btnDel);
+
+        card.appendChild(dot);
+        card.appendChild(info);
+        card.appendChild(actions);
+        tagList.appendChild(card);
+    });
+
+    updateFakeHud();
+}
+
+// ── Fake in-game HUD sync ─────────────────────────────────────────────────────
+function updateFakeHud() {
+    if (state.activeIndex !== null) {
+        const tag = state.tags[state.activeIndex - 1];
+        if (tag) {
+            applyColorStyle(fakeTag, tag.color);
+            fakeTag.textContent = tag.text + ' ';
+            applyColorStyle(fakeHudTag, tag.color);
+            fakeHudTag.textContent = tag.text;
+            return;
+        }
+    }
+    fakeTag.style.cssText = 'color: #55cc55; font-weight: 700;';
+    fakeTag.textContent = 'Member ';
+    fakeHudTag.style.cssText = 'color: #55cc55;';
+    fakeHudTag.textContent = 'Member';
+}
+
+// ── Form ──────────────────────────────────────────────────────────────────────
+function openNewForm() {
+    state.editIndex = null;
+    formTitle.textContent = 'New Tag';
+    inputText.value = '';
+    selectColor('~w~');
+    updateCharCounter();
+    updatePreview();
+    inputText.setAttribute('maxlength', state.maxLen);
+    formSection.classList.remove('hidden');
+    inputText.focus();
+}
+
+function openEditForm(idx) {
+    const tag = state.tags[idx - 1];
+    if (!tag) return;
+    state.editIndex = idx;
+    formTitle.textContent = 'Edit Tag · Slot ' + idx;
+    inputText.value = tag.text;
+    inputText.setAttribute('maxlength', state.maxLen);
+    selectColor(tag.color);
+    updateCharCounter();
+    updatePreview();
+    formSection.classList.remove('hidden');
+    inputText.focus();
+}
+
+function closeForm() {
+    formSection.classList.add('hidden');
+    state.editIndex = null;
+}
+
+// ── Tag actions (local simulation) ────────────────────────────────────────────
+function saveTag() {
+    const text = inputText.value.trim();
+    if (!text) { showToast('Tag text cannot be empty.', 'error'); return; }
+    if (text.length > state.maxLen) { showToast('Tag text is too long.', 'error'); return; }
+
+    const newTag = { text, color: state.selectedColor };
+
+    if (state.editIndex !== null) {
+        state.tags[state.editIndex - 1] = newTag;
+    } else {
+        if (state.tags.length >= state.slots) {
+            showToast('You have reached your slot limit (' + state.slots + ').', 'error');
+            return;
+        }
+        state.tags.push(newTag);
+    }
+
+    renderTagList();
+    closeForm();
+    showToast('Tag saved successfully.', 'success');
+}
+
+function deleteTag(idx) {
+    if (state.activeIndex === idx) state.activeIndex = null;
+    else if (state.activeIndex > idx) state.activeIndex--;
+    state.tags.splice(idx - 1, 1);
+    renderTagList();
+    closeForm();
+    showToast('Tag deleted.', 'success');
+}
+
+function activateTag(idx) {
+    state.activeIndex = idx;
+    const tag = state.tags[idx - 1];
+    renderTagList();
+    showToast('Tag "' + tag.text + '" is now active!', 'success');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, type = 'error') {
+    clearTimeout(toastTimer);
+    toast.textContent = msg;
+    toast.className = type;
+    toastTimer = setTimeout(hideToast, 3500);
+}
+function hideToast() {
+    clearTimeout(toastTimer);
+    toast.className = 'hidden';
+}
+
+// ── Panel toggle (mockup only) ────────────────────────────────────────────────
+function togglePanel() {
+    const isHidden = overlay.classList.toggle('hidden');
+    document.getElementById('toggle-btn').textContent = isHidden ? 'Show Panel' : 'Hide Panel';
+}
+
+// ── Wire events ───────────────────────────────────────────────────────────────
+btnClose.addEventListener('click', () => {
+    overlay.classList.add('hidden');
+    document.getElementById('toggle-btn').textContent = 'Show Panel';
+});
+
+btnNewTag.addEventListener('click', () => {
+    if (btnNewTag.disabled) return;
+    if (!formSection.classList.contains('hidden') && state.editIndex === null) {
+        closeForm();
+    } else {
+        openNewForm();
+    }
+});
+
+btnFormSave.addEventListener('click', saveTag);
+btnFormCancel.addEventListener('click', closeForm);
+
+inputText.addEventListener('input', () => {
+    updateCharCounter();
+    updatePreview();
+});
+inputText.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter')  saveTag();
+    if (e.key === 'Escape') closeForm();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+        if (!formSection.classList.contains('hidden')) {
+            closeForm();
+        } else {
+            togglePanel();
+        }
+    }
+});
+
+// ── Boot with sample data ─────────────────────────────────────────────────────
+state.tags        = MOCK_TAGS.map(t => ({ ...t }));
+state.activeIndex = MOCK_ACTIVE_INDEX;
+buildColorGrid();
+renderTagList();
+    </script>
+
+</body>
+</html>

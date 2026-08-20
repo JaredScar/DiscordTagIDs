@@ -228,4 +228,279 @@ AddEventHandler('DiscordTag:Server:GetTag', function()
 		activeTagTracker[src] = roleAccess[1];
 	end
 	TriggerClientEvent("GetStaffID:StaffStr:Return", -1, prefixes, activeTagTracker, false)
+
+	-- Cache the player's custom-tag slot count now that we have their Discord roles
+	if Config.CustomTags.Enabled then
+		CT_CacheSlotCount(src, identifierDiscord)
+	end
 end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Custom Player Headtag System
+-- ─────────────────────────────────────────────────────────────────────────────
+if Config.CustomTags.Enabled then
+
+-- In-memory store: customTagsData[identifier] = { {text, color}, ... }
+local customTagsData = {}
+-- Cached slot counts per server ID: ctSlotCache[src] = number
+local ctSlotCache = {}
+
+-- Valid GTA color codes players may use
+local VALID_COLORS = {
+	"~r~", "~g~", "~b~", "~y~", "~o~", "~p~", "~w~", "~RGB~"
+}
+local function isValidColor(c)
+	for _, v in ipairs(VALID_COLORS) do
+		if v == c then return true end
+	end
+	return false
+end
+
+-- Bad word filter
+local function containsBadWord(text)
+	if not Config.CustomTags.BadWordFilter.Enabled then return false end
+	local lower = string.lower(text)
+	for _, word in ipairs(Config.CustomTags.BadWordFilter.Words) do
+		if string.find(lower, string.lower(word), 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Retrieve a player's persistent identifier (discord preferred, license fallback)
+local function getPlayerIdentifier(src)
+	local discord, license
+	for _, v in ipairs(GetPlayerIdentifiers(src)) do
+		if string.sub(v, 1, 8) == "discord:" then discord = v end
+		if string.sub(v, 1, 8) == "license:" then license = v end
+	end
+	return discord or license
+end
+
+-- ── Flat-file helpers ────────────────────────────────────────────────────────
+local function CT_LoadFlatFile()
+	local raw = LoadResourceFile(GetCurrentResourceName(), "custom_tags.json")
+	if raw and raw ~= "" then
+		local ok, decoded = pcall(json.decode, raw)
+		if ok and type(decoded) == "table" then
+			customTagsData = decoded
+		end
+	end
+end
+
+local function CT_SaveFlatFile()
+	local ok, encoded = pcall(json.encode, customTagsData)
+	if ok then
+		SaveResourceFile(GetCurrentResourceName(), "custom_tags.json", encoded, -1)
+	end
+end
+
+-- ── Database helpers (oxmysql) ───────────────────────────────────────────────
+local function CT_EnsureTable()
+	exports.oxmysql:execute([[
+		CREATE TABLE IF NOT EXISTS `discordtagids_custom_tags` (
+			`identifier` VARCHAR(100) NOT NULL PRIMARY KEY,
+			`tags`       LONGTEXT    NOT NULL
+		)
+	]], {})
+end
+
+local function CT_LoadDatabase()
+	exports.oxmysql:fetch("SELECT `identifier`, `tags` FROM `discordtagids_custom_tags`", {}, function(rows)
+		if rows then
+			for _, row in ipairs(rows) do
+				local ok, decoded = pcall(json.decode, row.tags)
+				if ok and type(decoded) == "table" then
+					customTagsData[row.identifier] = decoded
+				end
+			end
+		end
+	end)
+end
+
+local function CT_SaveIdentifierToDatabase(identifier)
+	local ok, encoded = pcall(json.encode, customTagsData[identifier] or {})
+	if ok then
+		exports.oxmysql:execute([[
+			INSERT INTO `discordtagids_custom_tags` (`identifier`, `tags`)
+			VALUES (?, ?)
+			ON DUPLICATE KEY UPDATE `tags` = VALUES(`tags`)
+		]], {identifier, encoded})
+	end
+end
+
+-- ── Init ─────────────────────────────────────────────────────────────────────
+if Config.CustomTags.Storage == "database" then
+	CT_EnsureTable()
+	CT_LoadDatabase()
+else
+	CT_LoadFlatFile()
+end
+
+-- ── Slot count ───────────────────────────────────────────────────────────────
+-- Returns how many custom tag slots this player is entitled to.
+-- Checks every SlotPermissions entry and returns the highest matching value.
+local function CT_GetSlotCount(src)
+	local maxSlots = 0
+	local roleIDs = nil
+
+	for _, perm in ipairs(Config.CustomTags.SlotPermissions) do
+		if perm.type == "ace" then
+			if IsPlayerAceAllowed(src, perm.perm) and perm.slots > maxSlots then
+				maxSlots = perm.slots
+			end
+		elseif perm.type == "discord" then
+			-- Lazy-fetch role IDs once per call
+			if roleIDs == nil then
+				roleIDs = exports.Badger_Discord_API:GetDiscordRoles(src) or {}
+			end
+			for _, rid in ipairs(roleIDs) do
+				if exports.Badger_Discord_API:CheckEqual(perm.roleId, rid) and perm.slots > maxSlots then
+					maxSlots = perm.slots
+				end
+			end
+		end
+	end
+	return maxSlots
+end
+
+function CT_CacheSlotCount(src, _discordIdentifier)
+	ctSlotCache[src] = CT_GetSlotCount(src)
+end
+
+AddEventHandler('playerDropped', function()
+	ctSlotCache[source] = nil
+end)
+
+-- ── Net events ───────────────────────────────────────────────────────────────
+
+-- Client requests the NUI open: returns their custom tags + slot count
+RegisterNetEvent('DiscordTag:CustomTag:Open')
+AddEventHandler('DiscordTag:CustomTag:Open', function()
+	local src = source
+	local identifier = getPlayerIdentifier(src)
+	if not identifier then
+		TriggerClientEvent('DiscordTag:CustomTag:OpenReturn', src, {}, 0)
+		return
+	end
+	local slots = ctSlotCache[src] or CT_GetSlotCount(src)
+	ctSlotCache[src] = slots
+	local tags = customTagsData[identifier] or {}
+	TriggerClientEvent('DiscordTag:CustomTag:OpenReturn', src, tags, slots)
+end)
+
+-- Client saves (create or update) a custom tag
+-- payload: { index = number|nil, text = string, color = string }
+RegisterNetEvent('DiscordTag:CustomTag:Save')
+AddEventHandler('DiscordTag:CustomTag:Save', function(payload)
+	local src = source
+	local identifier = getPlayerIdentifier(src)
+	if not identifier then return end
+
+	local slots = ctSlotCache[src] or CT_GetSlotCount(src)
+	ctSlotCache[src] = slots
+
+	-- Validate text
+	local text = tostring(payload.text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+	if #text == 0 or #text > Config.CustomTags.MaxTextLength then
+		TriggerClientEvent('DiscordTag:CustomTag:Error', src, "Tag text must be 1–" .. Config.CustomTags.MaxTextLength .. " characters.")
+		return
+	end
+	if containsBadWord(text) then
+		TriggerClientEvent('DiscordTag:CustomTag:Error', src, "Your tag contains a disallowed word.")
+		return
+	end
+
+	-- Validate color
+	local color = tostring(payload.color or "~w~")
+	if not isValidColor(color) then
+		TriggerClientEvent('DiscordTag:CustomTag:Error', src, "Invalid color code.")
+		return
+	end
+
+	local tags = customTagsData[identifier] or {}
+	local index = tonumber(payload.index)
+
+	if index then
+		-- Update existing slot
+		if not tags[index] then
+			TriggerClientEvent('DiscordTag:CustomTag:Error', src, "No tag exists at that slot.")
+			return
+		end
+		tags[index] = {text = text, color = color}
+	else
+		-- New tag
+		if #tags >= slots then
+			TriggerClientEvent('DiscordTag:CustomTag:Error', src, "You have reached your custom tag slot limit (" .. slots .. ").")
+			return
+		end
+		table.insert(tags, {text = text, color = color})
+	end
+
+	customTagsData[identifier] = tags
+	if Config.CustomTags.Storage == "database" then
+		CT_SaveIdentifierToDatabase(identifier)
+	else
+		CT_SaveFlatFile()
+	end
+
+	TriggerClientEvent('DiscordTag:CustomTag:SaveReturn', src, tags, slots)
+	print(GetPlayerName(src) .. " saved custom tag: " .. color .. text)
+end)
+
+-- Client deletes a custom tag
+-- payload: { index = number }
+RegisterNetEvent('DiscordTag:CustomTag:Delete')
+AddEventHandler('DiscordTag:CustomTag:Delete', function(payload)
+	local src = source
+	local identifier = getPlayerIdentifier(src)
+	if not identifier then return end
+
+	local tags = customTagsData[identifier] or {}
+	local index = tonumber(payload.index)
+
+	if not index or not tags[index] then
+		TriggerClientEvent('DiscordTag:CustomTag:Error', src, "No tag exists at that slot.")
+		return
+	end
+
+	table.remove(tags, index)
+	customTagsData[identifier] = tags
+
+	if Config.CustomTags.Storage == "database" then
+		CT_SaveIdentifierToDatabase(identifier)
+	else
+		CT_SaveFlatFile()
+	end
+
+	local slots = ctSlotCache[src] or CT_GetSlotCount(src)
+	TriggerClientEvent('DiscordTag:CustomTag:SaveReturn', src, tags, slots)
+end)
+
+-- Client activates a custom tag as their headtag
+-- payload: { index = number }
+RegisterNetEvent('DiscordTag:CustomTag:Activate')
+AddEventHandler('DiscordTag:CustomTag:Activate', function(payload)
+	local src = source
+	local identifier = getPlayerIdentifier(src)
+	if not identifier then return end
+
+	local tags = customTagsData[identifier] or {}
+	local index = tonumber(payload.index)
+
+	if not index or not tags[index] then
+		TriggerClientEvent('DiscordTag:CustomTag:Error', src, "No tag exists at that slot.")
+		return
+	end
+
+	local tag = tags[index]
+	local fullTag = tag.color .. tag.text .. " ~w~"
+
+	activeTagTracker[src] = fullTag
+	TriggerClientEvent("GetStaffID:StaffStr:Return", -1, prefixes, activeTagTracker, false)
+	TriggerClientEvent('chatMessage', src, prefix .. 'Your Head-Tag has been set to your custom tag: ^5' .. tag.text)
+	TriggerClientEvent('DiscordTag:CustomTag:ActivateReturn', src, index)
+end)
+
+end -- Config.CustomTags.Enabled

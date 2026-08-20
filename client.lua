@@ -257,3 +257,105 @@ Citizen.CreateThread(function()
         Citizen.Wait(0);
     end
 end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Custom Player Headtag – NUI
+-- ─────────────────────────────────────────────────────────────────────────────
+if Config.CustomTags.Enabled then
+
+local nuiOpen = false
+
+local function OpenCustomTagUI()
+	TriggerServerEvent('DiscordTag:CustomTag:Open')
+end
+
+local function CloseCustomTagUI()
+	nuiOpen = false
+	SetNuiFocus(false, false)
+	SendNUIMessage({action = "close"})
+end
+
+-- Server sends back the data needed to populate the NUI
+RegisterNetEvent('DiscordTag:CustomTag:OpenReturn')
+AddEventHandler('DiscordTag:CustomTag:OpenReturn', function(tags, slots)
+	nuiOpen = true
+	SetNuiFocus(true, true)
+	SendNUIMessage({
+		action  = "open",
+		tags    = tags,
+		slots   = slots,
+		maxLen  = Config.CustomTags.MaxTextLength,
+	})
+end)
+
+-- Server confirms a save/delete; refresh the tag list in the NUI
+RegisterNetEvent('DiscordTag:CustomTag:SaveReturn')
+AddEventHandler('DiscordTag:CustomTag:SaveReturn', function(tags, slots)
+	SendNUIMessage({
+		action = "refresh",
+		tags   = tags,
+		slots  = slots,
+	})
+end)
+
+-- Server sends an error message to display in the NUI
+RegisterNetEvent('DiscordTag:CustomTag:Error')
+AddEventHandler('DiscordTag:CustomTag:Error', function(msg)
+	SendNUIMessage({action = "error", message = msg})
+end)
+
+-- Server confirms an activation; highlight the active tag in the NUI
+RegisterNetEvent('DiscordTag:CustomTag:ActivateReturn')
+AddEventHandler('DiscordTag:CustomTag:ActivateReturn', function(index)
+	SendNUIMessage({action = "activated", index = index})
+	-- Close the NUI after activation
+	Citizen.SetTimeout(800, function()
+		CloseCustomTagUI()
+	end)
+end)
+
+-- NUI callbacks (messages sent from the browser to Lua)
+RegisterNUICallback('save', function(data, cb)
+	TriggerServerEvent('DiscordTag:CustomTag:Save', {
+		index = data.index,
+		text  = data.text,
+		color = data.color,
+	})
+	cb({ok = true})
+end)
+
+RegisterNUICallback('delete', function(data, cb)
+	TriggerServerEvent('DiscordTag:CustomTag:Delete', {index = data.index})
+	cb({ok = true})
+end)
+
+RegisterNUICallback('activate', function(data, cb)
+	TriggerServerEvent('DiscordTag:CustomTag:Activate', {index = data.index})
+	cb({ok = true})
+end)
+
+RegisterNUICallback('close', function(data, cb)
+	CloseCustomTagUI()
+	cb({ok = true})
+end)
+
+-- /customtag command opens the panel
+RegisterCommand("customtag", function(source, args, rawCommand)
+	if not nuiOpen then
+		OpenCustomTagUI()
+	else
+		CloseCustomTagUI()
+	end
+end, false)
+
+-- ESC also closes the panel
+Citizen.CreateThread(function()
+	while true do
+		Citizen.Wait(0)
+		if nuiOpen and IsControlJustReleased(0, 200) then -- INPUT_FRONTEND_CANCEL (ESC)
+			CloseCustomTagUI()
+		end
+	end
+end)
+
+end -- Config.CustomTags.Enabled
